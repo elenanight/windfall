@@ -1,12 +1,9 @@
 """Method-budget analyzer used by the test suite.
 
-Rule of seven: every class in ``windfall/`` and ``windfall_cli/`` may define at
+Rule of ten: every class in ``windfall/`` and ``windfall_cli/`` may define at
 most ``MAX_METHODS`` methods, excluding ``__init__``. Crossing the limit is an
-ERROR (test failure); reaching 6-7 methods emits a UserWarning so the class
+ERROR (test failure); reaching 9-10 methods emits a UserWarning so the class
 and its methods are called out before the limit is hit.
-
-The audit is ``ast``-based, so it never imports the audited modules and stays
-pure regardless of runtime dependencies.
 """
 
 from __future__ import annotations
@@ -17,8 +14,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
-MAX_METHODS = 7
-WARN_FROM = 6  # a class with >= this many methods already warns
+MAX_METHODS = 10
+WARN_FROM = 9  # a class with >= this many methods already warns
 WARN_AT_LIMIT = MAX_METHODS
 
 

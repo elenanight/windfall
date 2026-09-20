@@ -13,44 +13,45 @@ def test_method_names_exclude_init() -> None:
 
 
 def test_error_when_over_limit() -> None:
-    source = "class Foo:\n" + "".join(f"    def m{i}(self): pass\n" for i in range(1, 9))
+    source = "class Foo:\n" + "".join(f"    def m{i}(self): pass\n" for i in range(1, 12))
     report = budget.reports_from_source(source)[0]
-    assert report.count == 8
+    assert report.count == 11
     message = report.error_message()
     assert message.startswith("[BUDGET-ERROR]")
     assert "Foo" in message
-    assert "m8 (8th)" in message
-    assert "max 7" in message
+    assert "m11 (11th)" in message
+    assert "max 10" in message
 
 
 def test_warning_when_at_limit() -> None:
-    source = "class Foo:\n" + "".join(f"    def m{i}(self): pass\n" for i in range(1, 8))
+    source = "class Foo:\n" + "".join(f"    def m{i}(self): pass\n" for i in range(1, 11))
     report = budget.reports_from_source(source)[0]
-    assert report.count == 7
+    assert report.count == 10
     message = report.warning_message()
     assert message.startswith("[BUDGET-WARNING]")
     assert "Foo" in message
-    assert "at the limit (7/7 methods)" in message
+    assert "at the limit (10/10 methods)" in message
 
 
 def test_warning_when_close_to_limit() -> None:
-    source = "class Foo:\n" + "".join(f"    def m{i}(self): pass\n" for i in range(1, 7))
+    source = "class Foo:\n" + "".join(f"    def m{i}(self): pass\n" for i in range(1, 10))
     report = budget.reports_from_source(source)[0]
-    assert report.count == 6
+    assert report.count == 9
     message = report.warning_message()
     assert message.startswith("[BUDGET-WARNING]")
-    assert "close to the limit (6/7 methods)" in message
+    assert "Foo" in message
+    assert "close to the limit (9/10 methods)" in message
 
 
 def test_run_checks_fails_on_violation() -> None:
-    source = "class Foo:\n" + "".join(f"    def m{i}(self): pass\n" for i in range(1, 9))
+    source = "class Foo:\n" + "".join(f"    def m{i}(self): pass\n" for i in range(1, 12))
     report = budget.reports_from_source(source)[0]
     with pytest.raises(AssertionError, match="BUDGET-ERROR"):
         budget.run_checks([report], emit_warnings=False)
 
 
 def test_run_checks_warns_without_failing() -> None:
-    source = "class Foo:\n" + "".join(f"    def m{i}(self): pass\n" for i in range(1, 7))
+    source = "class Foo:\n" + "".join(f"    def m{i}(self): pass\n" for i in range(1, 10))
     report = budget.reports_from_source(source)[0]
     with pytest.warns(UserWarning, match="BUDGET-WARNING"):
         budget.run_checks([report])

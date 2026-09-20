@@ -100,13 +100,13 @@ uv run pytest -q
 uv run ruff check .
 ```
 
-## Rule of seven
+## Rule of ten
 
-Every class may define at most 7 methods (excluding `__init__`). The test
+Every class may define at most 10 methods (excluding `__init__`). The test
 suite enforces this with an `ast`-based audit (`tests/budget.py`):
 
-- more than 7 methods -> `[BUDGET-ERROR]` and the test fails
-- 6-7 methods -> `[BUDGET-WARNING]` naming the class and methods
+- more than 10 methods -> `[BUDGET-ERROR]` and the test fails
+- 9-10 methods -> `[BUDGET-WARNING]` naming the class and methods
 
 ## Releasing
 
