@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "windfall"
+version = "0.1.0"
+description = "A class-based TUI compositor and engine for building terminal apps and games with rich and readchar."
+readme = "README.md"
+requires-python = ">=3.14"
+license = { text = "MIT" }
+authors = [{ name = "Windfall Contributors" }]
+dependencies = [
+    "rich>=13.7.2",
+    "readchar>=4.0.0",
+]
+
+[project.scripts]
+windfall = "windfall_cli.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.5.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["windfall*"]
+
+[tool.setuptools.package-data]
+windfall_cli = ["templates/*", "templates/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+extend-exclude = ["build"]
