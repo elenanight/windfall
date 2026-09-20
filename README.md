@@ -1,5 +1,13 @@
 # Windfall
 
+<!-- badges:start -->
+[![version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/elenanight/windfall)
+[![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/elenanight/windfall)
+[![python](https://img.shields.io/badge/python-3.14-3776AB)](https://github.com/elenanight/windfall)
+[![last commit](https://img.shields.io/github/last-commit/elenanight/windfall)](https://github.com/elenanight/windfall)
+[![stars](https://img.shields.io/github/stars/elenanight/windfall)](https://github.com/elenanight/windfall)
+<!-- badges:end -->
+
 A class-based TUI compositor and engine for building terminal apps and games
 with `rich` and `readchar`. Assemble reusable components and widgets from
 primitives, compose them into scenes and frames, animate them with a shared,
@@ -99,3 +107,13 @@ suite enforces this with an `ast`-based audit (`tests/budget.py`):
 
 - more than 7 methods -> `[BUDGET-ERROR]` and the test fails
 - 6-7 methods -> `[BUDGET-WARNING]` naming the class and methods
+
+## Releasing
+
+`pyproject.toml` holds the released version. After bumping it, run the sync
+script to refresh the README version badge and `__version__` together:
+
+```bash
+uv run python scripts/update_readme.py            # update badges + __version__
+uv run python scripts/update_readme.py --check    # verify they are in sync (CI-friendly)
+```
