@@ -1,4 +1,4 @@
-"""Whole-package audit: every class must honor the rule of seven."""
+"""Whole-package audit: every class must honor the rule of ten."""
 
 from __future__ import annotations
 
