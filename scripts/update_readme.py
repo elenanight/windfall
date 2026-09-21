@@ -5,6 +5,10 @@ regenerates the badge block between ``<!-- badges:start -->`` and
 ``<!-- badges:end -->`` in ``README.md`` so the version indicator always
 matches, and rewrites ``__version__`` in ``windfall/__init__.py`` to match.
 
+Releasing:
+    Bump the version in ``pyproject.toml`` and the ``[Unreleased]`` section
+    in ``CHANGELOG.md``, then run this script (plus ``--check`` to verify):
+
 Usage:
     uv run python scripts/update_readme.py            # apply changes
     uv run python scripts/update_readme.py --check    # exit 1 if changes are needed

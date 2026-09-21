@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from windfall import Compositor, Engine
+from windfall import Engine
 from windfall.events import ACTIVATE, KEY, Event
 from windfall.scene import focusables
 from windfall.widgets import Button, ListView, TextInput

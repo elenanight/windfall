@@ -17,25 +17,27 @@ primitives, compose them into scenes and frames, animate them with a shared,
 explicitly-advanced clock, and drive the whole thing from one engine loop —
 headless and interactive alike.
 
-## Status
+## Roadmap
 
-Phase 7 — complete. The full pipeline is built and tested:
+A teaser of what's coming. Full detail for each item will live in the
+wiki once it exists.
 
-- **Primitives** (`Text`, `Spacer`, `Divider`, `Border`, `Box`) draw into a
-  cell-grid `Canvas` and expose a `rich` renderable for the live display.
-- **Widgets** (`Label`, `Button`, `Panel`, `TextInput`, `ListView`) are
-  primitives that also tick, handle events, and take focus.
-- **Scenes** (`Scene`, `Frame`, `FrameStack`) compose widget trees, cycle
-  focus, and animate via `Tween`, `Animation`, `Timeline`, and `Clock`.
-- **Engine** (`Engine`, `Compositor`) runs the loop over `rich.Live` —
-  interactively or one deterministic `step(dt)` at a time.
-- **CLI** scaffolds, runs, demos, checks, and inspects apps.
+- **Project manager TUI** *(in progress)* — browse, open, archive, and
+  delete apps without leaving the terminal.
+- **Boot splash** *(planned)* — ASCII-art logo fade-in with a progress
+  bar that lands in the project menu.
+- **Animation release** *(planned)* — motion primitives and scripted
+  transitions built on the deterministic clock.
+- **Widget guides** *(planned)* — per-widget usage docs in the wiki.
+- **Vember OS** *(long term)* — a node-based OS rendering through
+  Windfall as an imported package.
 
 ## Quick start
 
 ```bash
 uv sync
 uv run windfall demo                  # interactive demo
+uv run windfall menu                  # browse, open, and manage projects
 uv run windfall new myapp             # scaffold a new app into project/myapp
 cd project/myapp && uv run python app.py   # run it
 uv run python examples/snake.py       # or play a game
@@ -131,13 +133,3 @@ suite enforces this with an `ast`-based audit (`tests/budget.py`):
 
 - more than 10 methods -> `[BUDGET-ERROR]` and the test fails
 - 9-10 methods -> `[BUDGET-WARNING]` naming the class and methods
-
-## Releasing
-
-`pyproject.toml` holds the released version. After bumping it, run the sync
-script to refresh the README version badge and `__version__` together:
-
-```bash
-uv run python scripts/update_readme.py            # update badges + __version__
-uv run python scripts/update_readme.py --check    # verify they are in sync (CI-friendly)
-```
