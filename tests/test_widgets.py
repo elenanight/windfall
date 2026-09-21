@@ -383,6 +383,11 @@ class TestHeaderEditor:
         views = [w for w in focusables(editor) if isinstance(w, ListView)]
         assert views[2].selection == 1
 
+    def test_columns_share_equal_widths_for_thirds(self) -> None:
+        editor = HeaderEditor()
+        widths = {w.size().x for w in focusables(editor) if isinstance(w, ListView)}
+        assert widths == {16}
+
     def test_links_boxes_with_available_shafts(self) -> None:
         shafts = _find_all(HeaderEditor(text="Hi"), Connector)
         assert len(shafts) == 2
@@ -463,6 +468,11 @@ class TestFooterEditor:
         save.focus(True)
         _hosted(editor).handle(Event(ACTIVATE))
         assert saved == [("Bye", "cyan", "white", False)]
+
+    def test_columns_share_equal_widths_for_thirds(self) -> None:
+        editor = FooterEditor()
+        widths = {w.size().x for w in focusables(editor) if isinstance(w, ListView)}
+        assert widths == {16}
 
     def test_links_boxes_with_available_shafts(self) -> None:
         shafts = _find_all(FooterEditor(text="Bye"), Connector)
