@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - None yet.
 
+## [0.2.3] - 2026-09-21
+
+### Added
+
+- Add-widget palette: drop Label/Button/TextInput/ListView/Divider into the
+  content section with left/center/right/full/sidebar placement, persisted
+  to config and restored on boot.
+- Remove-widget palette listing placed widgets for deletion.
+- `windfall new` asks to run the fresh app immediately (`--yes` skips).
+- Quitting a scaffolded app prints the `cd` back to the Windfall checkout.
+
+### Changed
+
+- Header/footer editors restyled: full-width input, 50/50 border/text
+  split, Update/Cancel buttons, resting inline under the menu.
+- `Center` layout accepts left/center/right alignment; app menu is
+  full-width above the header with a content section below.
+
 ## [0.2.2] - 2026-09-21
 
 ### Added
