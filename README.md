@@ -15,20 +15,6 @@ primitives, compose them into scenes and frames, animate them with a shared,
 explicitly-advanced clock, and drive the whole thing from one engine loop —
 headless and interactive alike.
 
-## Status
-
-Phase 7 — complete. The full pipeline is built and tested:
-
-- **Primitives** (`Text`, `Spacer`, `Divider`, `Border`, `Box`) draw into a
-  cell-grid `Canvas` and expose a `rich` renderable for the live display.
-- **Widgets** (`Label`, `Button`, `Panel`, `TextInput`, `ListView`) are
-  primitives that also tick, handle events, and take focus.
-- **Scenes** (`Scene`, `Frame`, `FrameStack`) compose widget trees, cycle
-  focus, and animate via `Tween`, `Animation`, `Timeline`, and `Clock`.
-- **Engine** (`Engine`, `Compositor`) runs the loop over `rich.Live` —
-  interactively or one deterministic `step(dt)` at a time.
-- **CLI** scaffolds, runs, demos, checks, and inspects apps.
-
 ## Quick start
 
 ```bash
@@ -39,69 +25,76 @@ cd project/myapp && uv run python app.py   # run it
 uv run python examples/snake.py       # or play a game
 ```
 
-## Layers
+## What's inside
 
-Everything is a `Primitive` (a `size()` and a `draw(canvas, rect)`), so layers
-compose freely:
+Everything is a `Primitive` (a `size()` and a `draw(canvas, rect)`), so
+layers compose freely:
 
 | Layer | Types | Role |
 | --- | --- | --- |
-| Primitives | `Text`, `Spacer`, `Divider`, `Border`, `Box` | draw into a canvas |
-| Widgets | `Label`, `Button`, `Panel`, `TextInput`, `ListView` | interactive primitives |
-| Layout | `Container`, `Row`, `Column`, `Stack` | position children |
+| Primitives | `Text`, `Spacer`, `Divider`, `Border`, `Box`, `Connector` | draw into a canvas |
+| Widgets | `Label`, `Button`, `Panel`, `TextInput`, `ListView`, `Header`, `Footer`, `HeaderEditor`, `FooterEditor`, `Hotkey` | interactive primitives |
+| Layout | `Container`, `Row`, `Column`, `Stack`, `Center` | position children |
 | Animation | `Tween`, `Animation`, `Timeline`, `Clock` | deterministic motion |
 | Views | `Scene`, `Frame`, `FrameStack` | trees, focus, navigation |
 | Engine | `Engine`, `Compositor` | input -> events -> tick -> `rich.Live` |
+| Settings | `Config` | JSON settings with defaults fallback |
+
+## Scaffolded apps
+
+`windfall new myapp` scaffolds more than a blank scene. Every app ships
+with a header bar, a footer bar, and a menu wired with node-style
+connectors:
+
+- **In-place editors** — open the header or footer editor from the menu,
+  pick text plus curated border/text colors, and save. Choices persist to
+  `.windfallrc.json`, so later runs rebuild the bars automatically.
+- **Hotkeys** — `A` focuses the Add widget slot, `E` focuses the first
+  menu action, `Q` quits. Arrow keys move focus, Enter activates.
+- **Content section** — a labeled panel marking where your own widgets go.
 
 ## CLI
 
 ```
-windfall new NAME [--template app] [--dest DIR]   scaffold an app into DIR/project/NAME (default: ./project/NAME)
-windfall run [app.py]                             run a file (default: the demo)
-windfall demo [--headless] [--ticks N]            run the built-in demo
-windfall example NAME [--headless] [--ticks N]    run a bundled example (menu/bouncer/snake)
-windfall check [--ticks N]                        headless smoke check (exit 0/1)
-windfall list app.py                              list Scene/Component subclasses (AST)
+windfall new NAME [--template app] [--dest DIR]
+    scaffold an app into DIR/project/NAME (default: ./project/NAME)
+windfall run [app.py]                  run a file (default: the demo)
+windfall demo [--headless] [--ticks N]         run the built-in demo
+windfall example NAME [--headless] [--ticks N] run a bundled example
+windfall check [--ticks N]             headless smoke check (exit 0/1)
+windfall list app.py                   list Scene/Component subclasses (AST)
 windfall help | --help | --version
 ```
 
-Every subcommand also has a shortcut flag:
-
-```
-windfall --create NAME [--template] [--dest]      ≡ windfall new
-windfall --run PATH                               ≡ windfall run
-windfall --demo [--headless] [--ticks]            ≡ windfall demo
-windfall --example NAME [--headless] [--ticks]    ≡ windfall example
-windfall --check [--ticks]                        ≡ windfall check
-windfall --list PATH                              ≡ windfall list
-windfall --examples                               list the bundled examples
-```
-
+Every subcommand also has a shortcut flag (`--create`, `--run`, `--demo`,
+`--example`, `--check`, `--list`, plus `--examples` to list examples).
 `demo`, `check`, and every run share the same `Engine.step` code path, so a
 `--headless` pass is equivalent to a real terminal session.
 
 ## Examples
 
-- `examples/menu.py` — ListView navigation inside a `Column` layout.
-- `examples/bouncer.py` — a custom `Ball` component animated across a track by
-  scene tweens that bounce back and forth.
-- `examples/snake.py` — a tiny grid game: a custom `Component` with
-  deterministic `update(dt)` movement, arrow steering, and Enter to restart.
+- `examples/menu.py` — `ListView` navigation inside a `Column` layout.
+- `examples/bouncer.py` — a custom `Ball` component animated by scene
+  tweens that bounce back and forth.
+- `examples/snake.py` — a tiny grid game with deterministic `update(dt)`
+  movement, arrow steering, and Enter to restart.
 
 Run any example headless for N fixed ticks by posting events and calling
 `engine.step(dt)` — see `tests/test_examples.py`.
 
-## Testing
+## Development
 
-The suite is entirely headless: input is scripted, `rich.Live` is stubbed, and
-time is advanced by explicit `dt`, never wall-clock sleeps.
+### Testing
+
+The suite is entirely headless: input is scripted, `rich.Live` is stubbed,
+and time is advanced by explicit `dt`, never wall-clock sleeps.
 
 ```bash
 uv run pytest -q
 uv run ruff check .
 ```
 
-## Rule of ten
+### Rule of ten
 
 Every class may define at most 10 methods (excluding `__init__`). The test
 suite enforces this with an `ast`-based audit (`tests/budget.py`):
@@ -109,7 +102,7 @@ suite enforces this with an `ast`-based audit (`tests/budget.py`):
 - more than 10 methods -> `[BUDGET-ERROR]` and the test fails
 - 9-10 methods -> `[BUDGET-WARNING]` naming the class and methods
 
-## Releasing
+### Releasing
 
 `pyproject.toml` holds the released version. After bumping it, run the sync
 script to refresh the README version badge and `__version__` together:
