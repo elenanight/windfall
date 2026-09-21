@@ -7,3 +7,11 @@ updates:
     target-branch: "dev"
     labels:
       - "dependencies"
+    groups:
+      all-deps:
+        patterns:
+          - "*"
+      all-security:
+        patterns:
+          - "*"
+        applies-to: "security-updates"
