@@ -11,6 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - None yet.
 
+## [0.2.4] - 2026-09-20
+
+### Added
+
+- `Row(fill)` layout flag with per-child weights for granular stretching.
+- Stretch option and content-width space guard in the Add-widget palette.
+- `R` hotkey focusing Remove; single Edit button drilling into header,
+  footer, and placed widgets, with in-place widget editing.
+- Visible Yes/No flags for the header and footer bars.
+- `windfall new` stays quiet; the run prompt handles launching.
+
+### Changed
+
+- Menu buttons centered to match the helper text.
+- Bar editors and Add palette use even thirds; content stretches with a
+  natural-width sidebar aside.
+
 ## [0.2.3] - 2026-09-21
 
 ### Added
