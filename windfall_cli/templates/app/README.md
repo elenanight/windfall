@@ -8,4 +8,4 @@ Run it with:
 uv run python app.py
 ```
 
-Keys: arrow keys move focus, Enter activates, Ctrl+C quits.
+Keys: W add · E edit · R remove · Q back · arrows move focus · Enter activates.
