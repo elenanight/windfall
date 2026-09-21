@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import runpy
+import subprocess
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -58,6 +59,11 @@ def build_parser() -> argparse.ArgumentParser:
     cmd_new.add_argument("name")
     cmd_new.add_argument("--template", default="app", help="template to copy (default: app)")
     cmd_new.add_argument("--dest", default=None, help="parent directory (default: current dir; creates project/NAME)")
+    cmd_new.add_argument(
+        "--yes",
+        action="store_true",
+        help="run the new app immediately without asking",
+    )
 
     cmd_run = sub.add_parser("run", help="run an app file (default: the demo)")
     cmd_run.add_argument("path", nargs="?", default=None, help="python file to run")
@@ -90,7 +96,27 @@ def _cmd_new(args) -> int:
         return 2
     display = _display_path(target)
     print(f"Created {display} (template {args.template}). Run it with `cd {display} && uv run python app.py`.")
+    if getattr(args, "yes", False):
+        return _run_scaffolded(target)
+    if sys.stdin.isatty():
+        try:
+            answer = input(f"Run '{args.name}' now? [y/N]: ")
+        except EOFError:
+            return 0
+        if answer.strip().lower() in ("y", "yes"):
+            return _run_scaffolded(target)
     return 0
+
+
+def _run_scaffolded(target: Path) -> int:
+    """Launch a freshly scaffolded app inside its own directory."""
+    print(f"Starting {target.name} ...")
+    try:
+        proc = subprocess.run(["uv", "run", "python", "app.py"], cwd=target, check=False)
+    except FileNotFoundError:
+        print("windfall: `uv` not found; start the app manually.", file=sys.stderr)
+        return 2
+    return proc.returncode
 
 
 def _display_path(path: Path) -> str:

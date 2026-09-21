@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from windfall_cli import cli
+
+
+def _stub_run(monkeypatch: pytest.MonkeyPatch, calls: list) -> None:
+    def fake_run(*args, **kwargs):
+        calls.append((args, kwargs))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(cli, "subprocess", SimpleNamespace(run=fake_run))
 
 
 def test_missing_command_prints_help(capsys) -> None:
@@ -169,6 +179,42 @@ def test_alias_examples_lists(capsys) -> None:
     assert "snake" in out
 
 
+def test_new_yes_flag_runs_app_without_prompt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list = []
+    _stub_run(monkeypatch, calls)
+    base = tmp_path / "yes"
+    assert cli.main(["new", "myapp", "--dest", str(base), "--yes"]) == 0
+    assert len(calls) == 1
+    (args, kwargs) = calls[0]
+    assert args[0] == ["uv", "run", "python", "app.py"]
+    assert kwargs["cwd"] == base / "project" / "myapp"
+
+
+def test_new_prompts_and_runs_on_yes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    calls: list = []
+    prompts: list = []
+    _stub_run(monkeypatch, calls)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt: prompts.append(prompt) or "y")
+    base = tmp_path / "prompt"
+    assert cli.main(["new", "myapp", "--dest", str(base)]) == 0
+    assert prompts == ["Run 'myapp' now? [y/N]: "]
+    assert "Starting myapp ..." in capsys.readouterr().out
+    assert len(calls) == 1
+
+
+def test_new_prompts_and_skips_on_no(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list = []
+    _stub_run(monkeypatch, calls)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda _: "n")
+    base = tmp_path / "skip"
+    assert cli.main(["new", "myapp", "--dest", str(base)]) == 0
+    assert calls == []
+
+
 def test_help_subcommand(capsys) -> None:
     assert cli.main(["help"]) == 0
     assert "windfall" in capsys.readouterr().out
@@ -193,7 +239,15 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     from windfall.events import ACTIVATE, KEY, Event
     from windfall.primitives import Connector
     from windfall.scene import focusables
-    from windfall.widgets import Button, FooterEditor, HeaderEditor, Hotkey, TextInput
+    from windfall.widgets import (
+        AddWidget,
+        Button,
+        FooterEditor,
+        HeaderEditor,
+        Hotkey,
+        RemoveWidget,
+        TextInput,
+    )
 
     base = tmp_path / "work"
     assert cli.main(["new", "myapp", "--dest", str(base)]) == 0
@@ -203,6 +257,11 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
+    home = module.windfall_home()
+    assert home is not None
+    assert (home / "pyproject.toml").is_file()
+    assert (home / "windfall" / "__init__.py").is_file()
+
     engine = Engine()
     scene = module.build(engine)
     assert scene.name == "myapp"
@@ -210,7 +269,11 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
 
     buttons = [w for w in focusables(scene.root) if isinstance(w, Button)]
     assert scene.handle(Event(KEY, {"key": "e"})) is True
-    assert buttons[1].focused is True  # E focuses Edit header, skipping Add widget
+    assert buttons[0].focused is True  # E focuses Add widget, now actionable
+
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    _, _, edit_header, _, _ = buttons
 
     for widget in focusables(scene.root):
         widget.focus(False)
@@ -222,13 +285,15 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert engine.running is False  # Q quits outright
     engine.running = False
 
-    _, edit_header, _, _ = buttons
+    _, _, edit_header, _, _ = buttons
     for widget in focusables(scene.root):
         widget.focus(False)
     edit_header.focus(True)
     assert scene.handle(Event(ACTIVATE)) is True
     editors = _find_all(scene.root, HeaderEditor)
     assert len(editors) == 1  # menu opens the editor in place
+    main = scene.root.children[0]
+    assert main.children[1] is editors[0]  # resting under the menu, above the header
     assert _find_all(scene.root, Hotkey) == []  # hotkey parked while editing
 
     fields = [w for w in focusables(editors[0]) if isinstance(w, TextInput)]
@@ -253,7 +318,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert _find_all(again.root, HeaderEditor) == []
     assert any("hello from myapp!" in line for line in Compositor().text(again))
     shafts = _find_all(again.root, Connector)
-    assert len(shafts) == 3
+    assert len(shafts) == 4
     assert all(shaft.state == "available" and shaft.horizontal for shaft in shafts)
 
     quit = next(
@@ -269,7 +334,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert again_engine.running is False
 
     buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
-    _, _, edit_footer, _ = buttons
+    _, _, _, edit_footer, _ = buttons
     for widget in focusables(again.root):
         widget.focus(False)
     edit_footer.focus(True)
@@ -285,9 +350,47 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert "built with windfall" in config_path.read_text(encoding="utf-8")
     assert _find_all(again.root, FooterEditor) == []
 
+    buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
+    add, _, _, _, _ = buttons
+    for widget in focusables(again.root):
+        widget.focus(False)
+    add.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    adders = _find_all(again.root, AddWidget)
+    assert len(adders) == 1  # palette opens in place
+
+    save, _ = [w for w in focusables(adders[0]) if isinstance(w, Button)]
+    for widget in focusables(again.root):
+        widget.focus(False)
+    save.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    assert '"type": "Label"' in config_path.read_text(encoding="utf-8")
+    assert _find_all(again.root, AddWidget) == []
+
+    buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
+    _, remove, _, _, _ = buttons
+    for widget in focusables(again.root):
+        widget.focus(False)
+    remove.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    removers = _find_all(again.root, RemoveWidget)
+    assert len(removers) == 1  # removal list opens in place
+
+    save, _ = [w for w in focusables(removers[0]) if isinstance(w, Button)]
+    for widget in focusables(again.root):
+        widget.focus(False)
+    save.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    assert '"type": "Label"' not in config_path.read_text(encoding="utf-8")
+    assert _find_all(again.root, RemoveWidget) == []
+    assert not any("New label" in line for line in Compositor().text(again))
+
     final = module.build(Engine())
     assert _find_all(final.root, FooterEditor) == []
     assert _find_all(final.root, HeaderEditor) == []
+    assert _find_all(final.root, AddWidget) == []
+    assert _find_all(final.root, RemoveWidget) == []
     rendered = Compositor().text(final)
     assert any("built with windfall" in line for line in rendered)
     assert any("Build your app here." in line for line in rendered)
+    assert not any("New label" in line for line in rendered)

@@ -11,9 +11,10 @@ from rich.live import Live
 from windfall.compositor import Compositor
 from windfall.events import QUIT, Event, EventQueue
 from windfall.input import InputReader, Keymap
+from windfall.primitives import Divider
 from windfall.scene import Frame, FrameStack
 from windfall.terminal import RawTerminal
-from windfall.widgets import Footer, Header
+from windfall.widgets import Button, Footer, Header, Label, ListView, TextInput
 
 
 class Engine:
@@ -49,6 +50,22 @@ class Engine:
     def make_footer(self, text: str = "", *, border: str = "cyan", fg: str = "white") -> Footer:
         """Assemble a footer bar from primitives with the given colors."""
         return Footer(text, border=border, fg=fg)
+
+    def make_widget(self, kind: str = "Label"):
+        """Assemble a default content widget of the given kind.
+
+        Unknown kinds fall back to a ``Label`` so a corrupt config can
+        never break app boot.
+        """
+        if kind == "Button":
+            return Button("New button")
+        if kind == "TextInput":
+            return TextInput("New input")
+        if kind == "ListView":
+            return ListView(items=["Option 1", "Option 2"])
+        if kind == "Divider":
+            return Divider()
+        return Label("New label", align="center")
 
     def post_event(self, event: Event) -> None:
         self._queue.post(event)

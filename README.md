@@ -1,7 +1,7 @@
 # Windfall
 
 <!-- badges:start -->
-[![version](https://img.shields.io/badge/version-0.2.2-blue)](https://github.com/elenanight/windfall)
+[![version](https://img.shields.io/badge/version-0.2.3-blue)](https://github.com/elenanight/windfall)
 [![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/elenanight/windfall/blob/main/LICENSE)
 [![changelog](https://img.shields.io/static/v1?label=&message=changelog&color=orange)](https://github.com/elenanight/windfall/blob/main/CHANGELOG.md)
 [![python](https://img.shields.io/badge/python-3.14-3776AB)](https://github.com/elenanight/windfall)
@@ -56,13 +56,12 @@ connectors:
 ## CLI
 
 ```
-windfall new NAME [--template app] [--dest DIR]
-    scaffold an app into DIR/project/NAME (default: ./project/NAME)
-windfall run [app.py]                  run a file (default: the demo)
-windfall demo [--headless] [--ticks N]         run the built-in demo
-windfall example NAME [--headless] [--ticks N] run a bundled example
-windfall check [--ticks N]             headless smoke check (exit 0/1)
-windfall list app.py                   list Scene/Component subclasses (AST)
+windfall new NAME [--template app] [--dest DIR] [--yes]   scaffold into DIR/project/NAME; asks to run it on a terminal (--yes skips that)
+windfall run [app.py]                             run a file (default: the demo)
+windfall demo [--headless] [--ticks N]            run the built-in demo
+windfall example NAME [--headless] [--ticks N]    run a bundled example (menu/bouncer/snake)
+windfall check [--ticks N]                        headless smoke check (exit 0/1)
+windfall list app.py                              list Scene/Component subclasses (AST)
 windfall help | --help | --version
 ```
 

@@ -8,8 +8,9 @@ from windfall.anim import Tween, ease_linear
 from windfall.engine import Engine
 from windfall.events import ACTIVATE, QUIT, Event
 from windfall.input import InputReader
+from windfall.primitives import Divider
 from windfall.scene import Scene
-from windfall.widgets import Button, Footer, Header, TextInput
+from windfall.widgets import Button, Footer, Header, Label, ListView, TextInput
 
 
 class FakeLive:
@@ -127,3 +128,13 @@ def test_make_footer_assembles_widget_from_primitives() -> None:
     footer = engine.make_footer("bye", border="red", fg="green")
     assert isinstance(footer, Footer)
     assert footer.size() == Footer("bye").size()
+
+
+def test_make_widget_builds_each_kind() -> None:
+    engine = Engine()
+    assert isinstance(engine.make_widget("Label"), Label)
+    assert isinstance(engine.make_widget("Button"), Button)
+    assert isinstance(engine.make_widget("TextInput"), TextInput)
+    assert isinstance(engine.make_widget("ListView"), ListView)
+    assert isinstance(engine.make_widget("Divider"), Divider)
+    assert isinstance(engine.make_widget("Nope"), Label)  # unknown kinds fall back

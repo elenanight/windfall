@@ -2,7 +2,9 @@
 
 from pathlib import Path
 
+import windfall
 from windfall import (
+    AddWidget,
     Button,
     Center,
     Column,
@@ -14,6 +16,7 @@ from windfall import (
     Hotkey,
     Label,
     Panel,
+    RemoveWidget,
     Row,
     Scene,
     Stack,
@@ -29,7 +32,17 @@ DEFAULTS = {
     "footer": "built with windfall",
     "footer_border": "cyan",
     "footer_fg": "white",
+    "widgets": [],
 }
+
+
+def windfall_home() -> Path | None:
+    """Locate the Windfall checkout backing this app, if it runs from one."""
+    init = getattr(windfall, "__file__", None)
+    if not init:
+        return None
+    root = Path(init).resolve().parent.parent
+    return root if (root / "pyproject.toml").is_file() else None
 
 
 def build(engine: Engine) -> Scene:
@@ -39,14 +52,16 @@ def build(engine: Engine) -> Scene:
     footer = engine.make_footer(
         cfg.get("footer"), border=cfg.get("footer_border"), fg=cfg.get("footer_fg")
     )
-    # Hook for later: widget choices + editor plug in here.
-    add = Button("Add widget", on_activate=None, padding=0)
+    add = Button("Add widget", on_activate=lambda: open_editor("widget"), padding=0)
+    remove = Button("Remove widget", on_activate=lambda: open_editor("remove"), padding=0)
     edit_header = Button("Edit header bar", on_activate=lambda: open_editor("header"), padding=0)
     edit_footer = Button("Edit footer bar", on_activate=lambda: open_editor("footer"), padding=0)
     quit = Button("Quit", on_activate=engine.stop, padding=0)
     body = Column()
     actions = Row()
     actions.add(add)
+    actions.add(Connector("available", horizontal=True))
+    actions.add(remove)
     actions.add(Connector("available", horizontal=True))
     actions.add(edit_header)
     actions.add(Connector("available", horizontal=True))
@@ -58,10 +73,14 @@ def build(engine: Engine) -> Scene:
     body.add(actions_center)
     body.add(Label("A add · E edit · Q quit · arrows move · Enter activate", align="center"))
     dialog = Panel(body, title="@@title@@", padding=0)
-    content_body = Column()
-    content_body.add(Label("Build your app here.", align="center"))
-    content_body.add(Label("Add widgets to the content section in app.py.", align="center"))
-    content = Panel(content_body, title="Content", padding=1)
+    content_main = Column()
+    content_main.add(Label("Build your app here.", align="center"))
+    content_main.add(Label("Add widgets to the content section in app.py.", align="center"))
+    content_aside = Column()
+    content_row = Row()
+    content_row.add(content_main)
+    content_row.add(content_aside)
+    content = Panel(content_row, title="Content", padding=1)
     main = Column()
     main.add(dialog)
     main.add(header)
@@ -107,6 +126,11 @@ def build(engine: Engine) -> Scene:
                 on_save=save_footer,
                 on_cancel=close_editor,
             )
+        elif kind == "widget":
+            editor = AddWidget(on_add=save_widget, on_cancel=close_editor)
+        elif kind == "remove":
+            entries = [f"{spec.get('type')} · {spec.get('placement')}" for spec, _, _ in placed]
+            editor = RemoveWidget(entries, on_remove=remove_widget, on_cancel=close_editor)
         else:
             editor = HeaderEditor(
                 text=cfg.get("header"),
@@ -115,18 +139,17 @@ def build(engine: Engine) -> Scene:
                 on_save=save_header,
                 on_cancel=close_editor,
             )
-        # Left-docked overlay: the row draws the editor at the left edge
-        # while the app body shows through on the right.
-        layer = Row()
-        layer.add(editor)
-        root.add(layer)
+        # Rest inline under the menu and above the header; the layout
+        # reflows around it until save/cancel takes it away.
+        layer = editor
+        main.children.insert(1, editor)
         scene.set_focus_scope(editor)
 
     def close_editor() -> None:
         nonlocal layer
         if layer is None:
             return
-        root.remove(layer)
+        main.remove(layer)
         layer = None
         for hotkey in hotkeys:
             root.add(hotkey)
@@ -144,6 +167,47 @@ def build(engine: Engine) -> Scene:
         footer.set_colors(border=border, fg=fg)
         close_editor()
 
+    placed: list = []  # (spec, parent, node) records backing removal
+
+    def place_widget(kind: str, placement: str):
+        """Drop an assembled widget into the content section at a placement."""
+        widget = engine.make_widget(kind)
+        if placement == "sidebar":
+            content_aside.add(widget)
+            return content_aside, widget
+        if placement == "left":
+            slot = Row()
+            slot.add(widget)
+        elif placement == "center":
+            slot = Center()
+            slot.add(widget)
+        elif placement == "right":
+            slot = Center(align="right")
+            slot.add(widget)
+        else:
+            slot = widget
+        content_main.add(slot)
+        return content_main, slot
+
+    def save_widget(kind: str, placement: str) -> None:
+        parent, node = place_widget(kind, placement)
+        spec = {"type": kind, "placement": placement}
+        placed.append((spec, parent, node))
+        cfg.set("widgets", [record[0] for record in placed]).save()
+        close_editor()
+
+    def remove_widget(index: int) -> None:
+        _, parent, node = placed.pop(index)
+        parent.remove(node)
+        cfg.set("widgets", [record[0] for record in placed]).save()
+        close_editor()
+
+    for spec in cfg.get("widgets", []):
+        kind = spec.get("type", "Label")
+        placement = spec.get("placement", "full")
+        parent, node = place_widget(kind, placement)
+        placed.append(({"type": kind, "placement": placement}, parent, node))
+
     return scene
 
 
@@ -151,3 +215,6 @@ if __name__ == "__main__":
     engine = Engine()
     engine.use_scene(build(engine))
     engine.run()
+    home = windfall_home()
+    if home is not None:
+        print(f"Back to Windfall with: cd {home}")

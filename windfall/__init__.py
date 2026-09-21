@@ -40,6 +40,7 @@ from windfall.primitives import Border, Box, Connector, Divider, Primitive, Spac
 from windfall.scene import Frame, FrameStack, Scene
 from windfall.style import Style, Theme
 from windfall.widgets import (
+    AddWidget,
     Button,
     Footer,
     FooterEditor,
@@ -49,10 +50,11 @@ from windfall.widgets import (
     Label,
     ListView,
     Panel,
+    RemoveWidget,
     TextInput,
 )
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 
 __all__ = [
     "ACTIVATE",
@@ -64,6 +66,7 @@ __all__ = [
     "QUIT",
     "RESIZE",
     "TICK",
+    "AddWidget",
     "Animation",
     "Border",
     "Box",
@@ -95,6 +98,7 @@ __all__ = [
     "Panel",
     "Primitive",
     "Rect",
+    "RemoveWidget",
     "Row",
     "Scene",
     "Spacer",
