@@ -12,19 +12,10 @@ import subprocess
 import time
 from pathlib import Path
 
-from windfall import (
-    Button,
-    Center,
-    Column,
-    Engine,
-    Label,
-    ListView,
-    Panel,
-    Row,
-    Scene,
-    TextInput,
-)
+from windfall import Button, Column, Engine, Label, ListView, Panel, Row, Scene, TextInput
+from windfall.primitives import Box
 from windfall.scene import focusables
+from windfall.style import Style
 from windfall_cli.scaffold import Scaffolder
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -54,24 +45,54 @@ def _names(projects: list[Path]) -> list[str]:
 
 def build_menu(engine: Engine, base=None) -> Scene:
     """Assemble the project manager scene for ``<base>/project``."""
+    from windfall import __version__
+
     root_path = Path(base) if base is not None else Path.cwd()
     state: dict = {"projects": find_projects(root_path)}
+    header = engine.make_header("Windfall - Projects", border="cyan", fg="bright_white")
     status = Label("Press New to scaffold your first app." if not state["projects"] else "")
     view = ListView(items=_names(state["projects"]))
     view.focus(True)
     actions = Row()
-    body = Column()
-    body.add(status)
-    body.add(view)
-    body.add(actions)
-    dialog = Panel(body, title="Windfall - Projects", padding=1)
-    root = Center()
-    root.add(dialog)
+    main = Column()
+    main.add(status)
+    main.add(view)
+    main.add(actions)
+    info = Column()
+    info.add(Label(f"Windfall {__version__}", align="center"))
+    info_count = Label("", align="center")
+    info.add(info_count)
+    count = len(state["projects"])
+    info_count.set_text(f"{count} project" + ("" if count == 1 else "s"))
+    aside = Column()
+    aside.add(Panel(info, title="Info", padding=1))
+    body = Row(fill=True, weights=[1, 0])
+    body.add(main)
+    body.add(aside)
+    credit = Row()
+    credit.add(Label("Built with Windfall by Elena Burt · "))
+    credit.add(
+        Label(
+            "github.com/elenanight/windfall",
+            style=Style(
+                fg="cyan",
+                underline=True,
+                link="https://github.com/elenanight/windfall",
+            ),
+        )
+    )
+    footer = Box(credit, border_style=Style(fg="cyan"), padding=0)
+    root = Column()
+    root.add(header)
+    root.add(body)
+    root.add(footer)
     scene = Scene(name="menu", root=root)
 
     def refresh(message: str = "") -> None:
-        state["projects"] = find_projects(base)
+        state["projects"] = find_projects(root_path)
         view.set_items(_names(state["projects"]))
+        count = len(state["projects"])
+        info_count.set_text(f"{count} project" + ("" if count == 1 else "s"))
         status.set_text(message)
 
     def selected() -> Path | None:

@@ -48,12 +48,13 @@ compose freely:
 
 | Layer | Types | Role |
 | --- | --- | --- |
-| Primitives | `Text`, `Spacer`, `Divider`, `Border`, `Box` | draw into a canvas |
-| Widgets | `Label`, `Button`, `Panel`, `TextInput`, `ListView` | interactive primitives |
-| Layout | `Container`, `Row`, `Column`, `Stack` | position children |
+| Primitives | `Text`, `Spacer`, `Divider`, `Border`, `Box`, `Connector` | draw into a canvas |
+| Widgets | `Label`, `Button`, `Panel`, `TextInput`, `ListView`, `Header`, `Footer`, `HeaderEditor`, `FooterEditor`, `Hotkey`, `AddWidget`, `RemoveWidget`, `EditMenu` | interactive primitives |
+| Layout | `Container`, `Row`, `Column`, `Stack`, `Center` | position children (`Row` fills and weights available space on request) |
 | Animation | `Tween`, `Animation`, `Timeline`, `Clock` | deterministic motion |
 | Views | `Scene`, `Frame`, `FrameStack` | trees, focus, navigation |
-| Engine | `Engine`, `Compositor` | input -> events -> tick -> `rich.Live` |
+| Engine | `Engine`, `Compositor` | input -> events -> tick -> `rich.Live`; assembles bars and widgets |
+| Settings | `Config` | JSON settings with defaults fallback |
 
 ## CLI
 
@@ -74,6 +75,7 @@ Every subcommand also has a shortcut flag:
 windfall --create NAME [--template] [--dest]      ≡ windfall new
 windfall --run PATH                               ≡ windfall run
 windfall --demo [--headless] [--ticks]            ≡ windfall demo
+windfall --menu                                     ≡ windfall menu
 windfall --example NAME [--headless] [--ticks]    ≡ windfall example
 windfall --check [--ticks]                        ≡ windfall check
 windfall --list PATH                              ≡ windfall list
@@ -82,6 +84,24 @@ windfall --examples                               list the bundled examples
 
 `demo`, `check`, and every run share the same `Engine.step` code path, so a
 `--headless` pass is equivalent to a real terminal session.
+
+## Project manager
+
+`windfall menu` (or `windfall --menu`) opens an interactive project
+manager built from the same widgets apps use — a header bar, a project
+list with an info sidebar, action buttons, and a footer with credits.
+Point it elsewhere with `windfall menu --dir DIR` (it scans
+`DIR/project`).
+
+- **New** — inline name form; scaffolds straight into the list.
+- **Open** — runs the selected app in its own folder, then returns.
+- **Delete** — asks inline first (`Yes`/`No`); only `Yes` removes it.
+- **Archive** — moves the app to `project/.archive/<name>-<timestamp>/`.
+- **Quit** — leaves with a farewell line once the terminal restores.
+
+With no projects yet, the list says so and the status line points at
+`New`. Every action narrates itself in the status line, and the sidebar
+keeps a live project count.
 
 ## Examples
 
