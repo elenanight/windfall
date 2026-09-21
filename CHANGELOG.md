@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- None yet.
+- Project manager TUI (`windfall menu`): browse scaffolded apps, open them
+  in place, archive to `.archive` with timestamps, and delete with inline
+  confirmation.
 
 ## [0.2.4] - 2026-09-20
 

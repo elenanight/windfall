@@ -1,7 +1,7 @@
 """Command-line interface: scaffold, run, demo, check, and list.
 
 Every subcommand has a shortcut flag: ``--create``, ``--run``, ``--demo``,
-``--check``, ``--list``, plus ``--example``/``--examples`` to run or browse the
+``--menu``, ``--check``, ``--list``, plus ``--example``/``--examples`` to run or browse the
 bundled example apps, and ``help``.
 """
 
@@ -46,6 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dest", default=None, help="parent directory for --create (default: current dir; creates project/NAME)")
     parser.add_argument("--run", metavar="PATH", default=None, help="run an app file (alias for `run`)")
     parser.add_argument("--demo", action="store_true", help="run the built-in demo (alias for `demo`)")
+    parser.add_argument("--menu", action="store_true", help="open the project manager (alias for `menu`)")
     parser.add_argument("--check", action="store_true", help="headless smoke check (alias for `check`)")
     parser.add_argument("--list", metavar="PATH", default=None, help="list scene classes in a file (alias for `list`)")
     parser.add_argument("--example", metavar="NAME", default=None, help="run a bundled example: menu, bouncer, snake")
@@ -71,6 +72,9 @@ def build_parser() -> argparse.ArgumentParser:
     cmd_demo = sub.add_parser("demo", help="run the built-in demo")
     cmd_demo.add_argument("--headless", action="store_true", help="step without a terminal")
     cmd_demo.add_argument("--ticks", type=int, default=120, help="ticks for --headless")
+
+    cmd_menu = sub.add_parser("menu", help="browse, open, archive, and delete projects")
+    cmd_menu.add_argument("--dir", default=None, help="parent directory (default: current dir; scans DIR/project)")
 
     cmd_example = sub.add_parser("example", help="run a bundled example")
     cmd_example.add_argument("name", choices=["menu", "bouncer", "snake"])
@@ -152,6 +156,12 @@ def _cmd_demo(args) -> int:
     return demo_main(headless=args.headless, ticks=args.ticks)
 
 
+def _cmd_menu(args) -> int:
+    from windfall_cli.menu import main as menu_main
+
+    return menu_main(root=getattr(args, "dir", None))
+
+
 def _cmd_check(args) -> int:
     from windfall_cli.check import run_check
 
@@ -202,6 +212,8 @@ def _alias_action(args):
     if args.demo:
         ticks = args.ticks if args.ticks is not None else 120
         return _cmd_demo, Namespace(headless=args.headless, ticks=ticks)
+    if args.menu:
+        return _cmd_menu, Namespace(dir=None)
     if args.check:
         ticks = args.ticks if args.ticks is not None else 60
         return _cmd_check, Namespace(ticks=ticks)
@@ -221,6 +233,7 @@ _HANDLERS = {
     "new": _cmd_new,
     "run": _cmd_run,
     "demo": _cmd_demo,
+    "menu": _cmd_menu,
     "check": _cmd_check,
     "list": _cmd_list,
     "example": _cmd_example,

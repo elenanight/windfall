@@ -59,6 +59,7 @@ compose freely:
 windfall new NAME [--template app] [--dest DIR] [--yes]   scaffold into DIR/project/NAME; asks to run it on a terminal (--yes skips that)
 windfall run [app.py]                             run a file (default: the demo)
 windfall demo [--headless] [--ticks N]            run the built-in demo
+windfall menu [--dir DIR]                         browse, open, archive, and delete projects
 windfall example NAME [--headless] [--ticks N]    run a bundled example (menu/bouncer/snake)
 windfall check [--ticks N]                        headless smoke check (exit 0/1)
 windfall list app.py                              list Scene/Component subclasses (AST)
