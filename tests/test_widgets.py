@@ -6,6 +6,7 @@ from windfall.canvas import Canvas
 from windfall.events import ACTIVATE, KEY, MOVE, Event
 from windfall.geom import Rect, Vec2
 from windfall.layout import Column
+from windfall.primitives import Connector
 from windfall.scene import Scene, focusables
 from windfall.widgets import (
     BORDER_COLORS,
@@ -258,6 +259,18 @@ def _editor_buttons(editor: HeaderEditor) -> list[Button]:
     return [w for w in focusables(editor) if isinstance(w, Button)]
 
 
+def _find_all(node, kind: type) -> list:
+    """Walk a component tree the way event delivery does (children/box/child)."""
+    found = [node] if isinstance(node, kind) else []
+    for attr in ("children", "_box", "_child"):
+        value = getattr(node, attr, None)
+        if value is None:
+            continue
+        for kid in value if isinstance(value, list) else [value]:
+            found.extend(_find_all(kid, kind))
+    return found
+
+
 def _hosted(editor: HeaderEditor) -> Scene:
     return Scene(root=Column().add(editor))
 
@@ -328,6 +341,11 @@ class TestHeaderEditor:
         _hosted(editor).handle(Event(ACTIVATE))
         assert saved[0][0] == "Hi"
 
+    def test_links_boxes_with_available_shafts(self) -> None:
+        shafts = _find_all(HeaderEditor(text="Hi"), Connector)
+        assert len(shafts) == 3
+        assert all(shaft.state == "available" for shaft in shafts)
+
 
 class TestFooter:
     def test_not_focusable(self) -> None:
@@ -388,3 +406,8 @@ class TestFooterEditor:
         assert _hosted(editor).handle(Event(ACTIVATE)) is True
         assert cancelled == [True]
         assert saved == []
+
+    def test_links_boxes_with_available_shafts(self) -> None:
+        shafts = _find_all(FooterEditor(text="Bye"), Connector)
+        assert len(shafts) == 3
+        assert all(shaft.state == "available" for shaft in shafts)

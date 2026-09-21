@@ -6,7 +6,7 @@ from windfall.component import Component
 from windfall.events import ACTIVATE, KEY, MOVE, Event
 from windfall.geom import Rect, Vec2
 from windfall.layout import Column, Row
-from windfall.primitives import Border, Box, Text
+from windfall.primitives import Border, Box, Connector, Text
 from windfall.style import Style
 
 _HIGHLIGHT = Style(bg="bright_blue")
@@ -347,10 +347,13 @@ class HeaderEditor(Panel):
         body = Column()
         body.add(Label("Header text:"))
         body.add(self._field)
+        body.add(Connector("available"))
         body.add(Label("Border color:"))
         body.add(self._borders)
+        body.add(Connector("available"))
         body.add(Label("Text color:"))
         body.add(self._fgs)
+        body.add(Connector("available"))
         actions = Row()
         actions.add(Button("Save", on_activate=self._commit))
         actions.add(Button("Cancel", on_activate=self._abort))
@@ -397,10 +400,13 @@ class FooterEditor(Panel):
         body = Column()
         body.add(Label("Footer text:"))
         body.add(self._field)
+        body.add(Connector("available"))
         body.add(Label("Border color:"))
         body.add(self._borders)
+        body.add(Connector("available"))
         body.add(Label("Text color:"))
         body.add(self._fgs)
+        body.add(Connector("available"))
         actions = Row()
         actions.add(Button("Save", on_activate=self._commit))
         actions.add(Button("Cancel", on_activate=self._abort))
