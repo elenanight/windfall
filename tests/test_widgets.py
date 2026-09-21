@@ -21,6 +21,7 @@ from windfall.widgets import (
     Label,
     ListView,
     Panel,
+    RemoveWidget,
     TextInput,
 )
 
@@ -461,6 +462,44 @@ class TestAddWidget:
         assert _hosted(editor).handle(Event(ACTIVATE)) is True
         assert cancelled == [True]
         assert added == []
+
+
+class TestRemoveWidget:
+    def test_commit_delivers_selected_index(self) -> None:
+        removed: list[int] = []
+        editor = RemoveWidget(
+            ["Label · left", "Button · full"], on_remove=removed.append
+        )
+        views = [w for w in focusables(editor) if isinstance(w, ListView)]
+        views[0].focus(True)
+        views[0].handle(move("down"))
+        views[0].focus(False)
+        remove, _ = _editor_buttons(editor)
+        remove.focus(True)
+        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert removed == [1]
+
+    def test_cancel_calls_on_cancel_only(self) -> None:
+        removed: list[int] = []
+        cancelled: list[bool] = []
+        editor = RemoveWidget(
+            ["Label · left"],
+            on_remove=removed.append,
+            on_cancel=lambda: cancelled.append(True),
+        )
+        _, cancel = _editor_buttons(editor)
+        cancel.focus(True)
+        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert cancelled == [True]
+        assert removed == []
+
+    def test_empty_entries_remove_is_noop(self) -> None:
+        removed: list[int] = []
+        editor = RemoveWidget([], on_remove=removed.append)
+        remove, _ = _editor_buttons(editor)
+        remove.focus(True)
+        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert removed == []
 
 
 class TestHotkey:

@@ -50,6 +50,7 @@ from windfall.widgets import (
     Label,
     ListView,
     Panel,
+    RemoveWidget,
     TextInput,
 )
 
@@ -97,6 +98,7 @@ __all__ = [
     "Panel",
     "Primitive",
     "Rect",
+    "RemoveWidget",
     "Row",
     "Scene",
     "Spacer",

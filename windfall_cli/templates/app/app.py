@@ -15,6 +15,7 @@ from windfall import (
     Hotkey,
     Label,
     Panel,
+    RemoveWidget,
     Row,
     Scene,
     Stack,
@@ -42,12 +43,15 @@ def build(engine: Engine) -> Scene:
         cfg.get("footer"), border=cfg.get("footer_border"), fg=cfg.get("footer_fg")
     )
     add = Button("Add widget", on_activate=lambda: open_editor("widget"), padding=0)
+    remove = Button("Remove widget", on_activate=lambda: open_editor("remove"), padding=0)
     edit_header = Button("Edit header bar", on_activate=lambda: open_editor("header"), padding=0)
     edit_footer = Button("Edit footer bar", on_activate=lambda: open_editor("footer"), padding=0)
     quit = Button("Quit", on_activate=engine.stop, padding=0)
     body = Column()
     actions = Row()
     actions.add(add)
+    actions.add(Connector("available", horizontal=True))
+    actions.add(remove)
     actions.add(Connector("available", horizontal=True))
     actions.add(edit_header)
     actions.add(Connector("available", horizontal=True))
@@ -114,6 +118,9 @@ def build(engine: Engine) -> Scene:
             )
         elif kind == "widget":
             editor = AddWidget(on_add=save_widget, on_cancel=close_editor)
+        elif kind == "remove":
+            entries = [f"{spec.get('type')} · {spec.get('placement')}" for spec, _, _ in placed]
+            editor = RemoveWidget(entries, on_remove=remove_widget, on_cancel=close_editor)
         else:
             editor = HeaderEditor(
                 text=cfg.get("header"),
@@ -150,12 +157,14 @@ def build(engine: Engine) -> Scene:
         footer.set_colors(border=border, fg=fg)
         close_editor()
 
-    def place_widget(kind: str, placement: str) -> None:
+    placed: list = []  # (spec, parent, node) records backing removal
+
+    def place_widget(kind: str, placement: str):
         """Drop an assembled widget into the content section at a placement."""
         widget = engine.make_widget(kind)
         if placement == "sidebar":
             content_aside.add(widget)
-            return
+            return content_aside, widget
         if placement == "left":
             slot = Row()
             slot.add(widget)
@@ -168,16 +177,26 @@ def build(engine: Engine) -> Scene:
         else:
             slot = widget
         content_main.add(slot)
+        return content_main, slot
 
     def save_widget(kind: str, placement: str) -> None:
-        place_widget(kind, placement)
-        specs = list(cfg.get("widgets", []))
-        specs.append({"type": kind, "placement": placement})
-        cfg.set("widgets", specs).save()
+        parent, node = place_widget(kind, placement)
+        spec = {"type": kind, "placement": placement}
+        placed.append((spec, parent, node))
+        cfg.set("widgets", [record[0] for record in placed]).save()
+        close_editor()
+
+    def remove_widget(index: int) -> None:
+        _, parent, node = placed.pop(index)
+        parent.remove(node)
+        cfg.set("widgets", [record[0] for record in placed]).save()
         close_editor()
 
     for spec in cfg.get("widgets", []):
-        place_widget(spec.get("type", "Label"), spec.get("placement", "full"))
+        kind = spec.get("type", "Label")
+        placement = spec.get("placement", "full")
+        parent, node = place_widget(kind, placement)
+        placed.append(({"type": kind, "placement": placement}, parent, node))
 
     return scene
 

@@ -511,3 +511,44 @@ class AddWidget(Panel):
     def _abort(self) -> None:
         if self.on_cancel is not None:
             self.on_cancel()
+
+
+class RemoveWidget(Panel):
+    """Palette panel listing placed widgets for removal.
+
+    Entries are human-readable ``"Kind · placement"`` strings. ``on_remove``
+    receives the selected entry index; ``on_cancel`` takes no arguments.
+    With no entries the list shows a placeholder and Remove does nothing.
+    """
+
+    def __init__(
+        self,
+        entries=None,
+        *,
+        on_remove=None,
+        on_cancel=None,
+        title: str = "Remove widget",
+    ) -> None:
+        self._entries = list(entries or [])
+        self.on_remove = on_remove
+        self.on_cancel = on_cancel
+        self._list = ListView(items=self._entries or ["(no widgets placed)"])
+        body = Column()
+        body.add(Label("Placed widgets:"))
+        body.add(self._list)
+        body.add(Connector("available"))
+        actions = Row()
+        actions.add(Button("Remove", on_activate=self._commit))
+        actions.add(Button("Cancel", on_activate=self._abort))
+        body.add(actions)
+        super().__init__(body, title=title, padding=1)
+
+    def _commit(self) -> None:
+        if not self._entries:
+            return
+        if self.on_remove is not None:
+            self.on_remove(self._list.selection)
+
+    def _abort(self) -> None:
+        if self.on_cancel is not None:
+            self.on_cancel()

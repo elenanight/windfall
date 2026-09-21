@@ -193,7 +193,15 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     from windfall.events import ACTIVATE, KEY, Event
     from windfall.primitives import Connector
     from windfall.scene import focusables
-    from windfall.widgets import AddWidget, Button, FooterEditor, HeaderEditor, Hotkey, TextInput
+    from windfall.widgets import (
+        AddWidget,
+        Button,
+        FooterEditor,
+        HeaderEditor,
+        Hotkey,
+        RemoveWidget,
+        TextInput,
+    )
 
     base = tmp_path / "work"
     assert cli.main(["new", "myapp", "--dest", str(base)]) == 0
@@ -214,7 +222,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
 
     for widget in focusables(scene.root):
         widget.focus(False)
-    _, edit_header, _, _ = buttons
+    _, _, edit_header, _, _ = buttons
 
     for widget in focusables(scene.root):
         widget.focus(False)
@@ -226,7 +234,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert engine.running is False  # Q quits outright
     engine.running = False
 
-    _, edit_header, _, _ = buttons
+    _, _, edit_header, _, _ = buttons
     for widget in focusables(scene.root):
         widget.focus(False)
     edit_header.focus(True)
@@ -259,7 +267,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert _find_all(again.root, HeaderEditor) == []
     assert any("hello from myapp!" in line for line in Compositor().text(again))
     shafts = _find_all(again.root, Connector)
-    assert len(shafts) == 3
+    assert len(shafts) == 4
     assert all(shaft.state == "available" and shaft.horizontal for shaft in shafts)
 
     quit = next(
@@ -275,7 +283,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert again_engine.running is False
 
     buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
-    _, _, edit_footer, _ = buttons
+    _, _, _, edit_footer, _ = buttons
     for widget in focusables(again.root):
         widget.focus(False)
     edit_footer.focus(True)
@@ -292,7 +300,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert _find_all(again.root, FooterEditor) == []
 
     buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
-    add, _, _, _ = buttons
+    add, _, _, _, _ = buttons
     for widget in focusables(again.root):
         widget.focus(False)
     add.focus(True)
@@ -308,11 +316,30 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert '"type": "Label"' in config_path.read_text(encoding="utf-8")
     assert _find_all(again.root, AddWidget) == []
 
+    buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
+    _, remove, _, _, _ = buttons
+    for widget in focusables(again.root):
+        widget.focus(False)
+    remove.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    removers = _find_all(again.root, RemoveWidget)
+    assert len(removers) == 1  # removal list opens in place
+
+    save, _ = [w for w in focusables(removers[0]) if isinstance(w, Button)]
+    for widget in focusables(again.root):
+        widget.focus(False)
+    save.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    assert '"type": "Label"' not in config_path.read_text(encoding="utf-8")
+    assert _find_all(again.root, RemoveWidget) == []
+    assert not any("New label" in line for line in Compositor().text(again))
+
     final = module.build(Engine())
     assert _find_all(final.root, FooterEditor) == []
     assert _find_all(final.root, HeaderEditor) == []
     assert _find_all(final.root, AddWidget) == []
+    assert _find_all(final.root, RemoveWidget) == []
     rendered = Compositor().text(final)
     assert any("built with windfall" in line for line in rendered)
     assert any("Build your app here." in line for line in rendered)
-    assert any("New label" in line for line in rendered)
+    assert not any("New label" in line for line in rendered)
