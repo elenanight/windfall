@@ -225,5 +225,6 @@ def main(root=None) -> int:
 
 
 def farewell() -> None:
-    """Print the shutdown line after the loop exits and the terminal restores."""
+    """Clear the screen, then print the shutdown line on the fresh terminal."""
+    print("\033[2J\033[H", end="")
     print("Thanks for using Windfall. Goodbye!")

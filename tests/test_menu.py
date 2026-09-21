@@ -160,7 +160,9 @@ def test_menu_help_lists_subcommand(capsys) -> None:
 
 def test_farewell_prints_shutdown_line(capsys) -> None:
     menu_module.farewell()
-    assert "Thanks for using Windfall. Goodbye!" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "\033[2J" in out
+    assert "Thanks for using Windfall. Goodbye!" in out
 
 
 def test_new_creates_project_and_refreshes(tmp_path: Path) -> None:

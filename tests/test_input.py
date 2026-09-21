@@ -41,6 +41,14 @@ def test_keymap_defaults_bind_arrow_keys() -> None:
     assert keymap.map(readchar.key.CTRL_C).kind == QUIT
 
 
+def test_keymap_binds_application_cursor_arrows() -> None:
+    keymap = Keymap()
+    assert keymap.map("\x1bOA").data == {"direction": "up"}
+    assert keymap.map("\x1bOB").data == {"direction": "down"}
+    assert keymap.map("\x1bOC").data == {"direction": "right"}
+    assert keymap.map("\x1bOD").data == {"direction": "left"}
+
+
 def test_keymap_defaults_bind_both_enter_tokens() -> None:
     keymap = Keymap()
     assert keymap.map("\r").kind == ACTIVATE
@@ -147,6 +155,18 @@ def test_read_token_returns_lone_esc_after_grace_period() -> None:
     try:
         os.write(write_fd, b"\x1b")
         assert _read_token(read_fd) == "\x1b"
+    finally:
+        os.close(read_fd)
+        os.close(write_fd)
+
+
+def test_read_token_assembles_slow_escape_sequence() -> None:
+    read_fd, write_fd = os.pipe()
+    try:
+        os.write(write_fd, b"\x1b")
+        time.sleep(0.1)
+        os.write(write_fd, b"[B")
+        assert _read_token(read_fd) == readchar.key.DOWN
     finally:
         os.close(read_fd)
         os.close(write_fd)
