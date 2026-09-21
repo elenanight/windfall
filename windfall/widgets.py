@@ -423,3 +423,29 @@ class FooterEditor(Panel):
     def _abort(self) -> None:
         if self.on_cancel is not None:
             self.on_cancel()
+
+
+class Hotkey(Component):
+    """A non-visual key binding that fires when its key is pressed.
+
+    Place it after text inputs in a container so typing takes precedence:
+    a focused input consumes its keys before delivery reaches the hotkey.
+    """
+
+    def __init__(self, key: str = "", on_press=None) -> None:
+        super().__init__()
+        self._key = key
+        self.on_press = on_press
+
+    def size(self) -> Vec2:
+        return Vec2(0, 0)
+
+    def draw(self, canvas, rect: Rect) -> None:
+        return None
+
+    def handle(self, event: Event) -> bool:
+        if event.kind != KEY or event.data.get("key") != self._key:
+            return False
+        if self.on_press is not None:
+            self.on_press()
+        return True

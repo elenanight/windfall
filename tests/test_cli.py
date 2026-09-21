@@ -190,10 +190,10 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     import importlib.util
 
     from windfall import Compositor, Engine
-    from windfall.events import ACTIVATE, Event
+    from windfall.events import ACTIVATE, KEY, Event
     from windfall.primitives import Connector
     from windfall.scene import focusables
-    from windfall.widgets import Button, FooterEditor, HeaderEditor
+    from windfall.widgets import Button, FooterEditor, HeaderEditor, Hotkey, TextInput
 
     base = tmp_path / "work"
     assert cli.main(["new", "myapp", "--dest", str(base)]) == 0
@@ -208,6 +208,9 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert _find_all(scene.root, HeaderEditor) == []  # user opens the editor now
 
     buttons = [w for w in focusables(scene.root) if isinstance(w, Button)]
+    assert scene.handle(Event(KEY, {"key": "e"})) is True
+    assert buttons[1].focused is True  # E focuses Edit header, skipping Add widget
+
     _, edit_header, _, _ = buttons
     for widget in focusables(scene.root):
         widget.focus(False)
@@ -215,6 +218,13 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert scene.handle(Event(ACTIVATE)) is True
     editors = _find_all(scene.root, HeaderEditor)
     assert len(editors) == 1  # menu opens the editor in place
+    assert _find_all(scene.root, Hotkey) == []  # hotkey parked while editing
+
+    fields = [w for w in focusables(editors[0]) if isinstance(w, TextInput)]
+    fields[0].focus(True)
+    assert scene.handle(Event(KEY, {"key": "e"})) is True
+    assert fields[0].value.endswith("e")  # typing wins over the hotkey
+    assert fields[0].focused is True
 
     save, _ = [w for w in focusables(editors[0]) if isinstance(w, Button)]
     for widget in focusables(scene.root):
@@ -225,6 +235,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert config_path.is_file()
     assert "hello from myapp!" in config_path.read_text(encoding="utf-8")
     assert _find_all(scene.root, HeaderEditor) == []
+    assert len(_find_all(scene.root, Hotkey)) == 1  # hotkey restored after close
 
     again_engine = Engine()
     again = module.build(again_engine)

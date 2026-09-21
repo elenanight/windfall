@@ -16,6 +16,7 @@ from windfall.widgets import (
     FooterEditor,
     Header,
     HeaderEditor,
+    Hotkey,
     Label,
     ListView,
     Panel,
@@ -411,3 +412,32 @@ class TestFooterEditor:
         shafts = _find_all(FooterEditor(text="Bye"), Connector)
         assert len(shafts) == 3
         assert all(shaft.state == "available" for shaft in shafts)
+
+
+class TestHotkey:
+    def test_not_focusable_and_zero_size(self) -> None:
+        hotkey = Hotkey("e")
+        assert hotkey.focusable is False
+        assert hotkey.size() == Vec2(0, 0)
+
+    def test_draw_is_noop(self) -> None:
+        canvas = Canvas(3, 1)
+        Hotkey("e").draw(canvas, Rect(0, 0, 3, 1))
+        assert canvas.text() == ["   "]
+
+    def test_fires_on_matching_key(self) -> None:
+        pressed: list[bool] = []
+        hotkey = Hotkey("e", on_press=lambda: pressed.append(True))
+        assert hotkey.handle(key("e")) is True
+        assert pressed == [True]
+
+    def test_ignores_other_keys_and_events(self) -> None:
+        pressed: list[bool] = []
+        hotkey = Hotkey("e", on_press=lambda: pressed.append(True))
+        assert hotkey.handle(key("q")) is False
+        assert hotkey.handle(move("down")) is False
+        assert hotkey.handle(Event(ACTIVATE)) is False
+        assert pressed == []
+
+    def test_missing_callback_is_safe(self) -> None:
+        assert Hotkey("e").handle(key("e")) is True
