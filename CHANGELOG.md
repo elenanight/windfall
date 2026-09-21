@@ -9,9 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Project manager TUI (`windfall menu`): browse scaffolded apps, open them
-  in place, archive to `.archive` with timestamps, and delete with inline
-  confirmation.
+- None yet.
+
+## [0.2.5] - 2026-09-21
+
+### Added
+
+- Project manager TUI (`windfall menu [--dir]`): browse scaffolded apps
+  with a header bar, info sidebar, and credits footer; New with an inline
+  name form, Open in place, Archive to timestamped `.archive` dirs,
+  Delete with inline confirmation, and a farewell shutdown line.
+- Hyperlink-capable `Style.link` rendering through rich.
+- Robust input: SS3 arrow bindings, slow-terminal escape assembly, an
+  exclusive terminal handoff to child apps, and ListView edge focus
+  release.
+- CI with dev-to-main auto-promotion, grouped Dependabot on dev, security
+  policy with private reporting, and channel health badges.
+
+### Changed
+
+- README gains Roadmap and Project manager sections; releasing docs
+  moved into the sync script.
 
 ## [0.2.4] - 2026-09-20
 
