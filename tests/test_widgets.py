@@ -429,7 +429,8 @@ class TestHotkey:
         pressed: list[bool] = []
         hotkey = Hotkey("e", on_press=lambda: pressed.append(True))
         assert hotkey.handle(key("e")) is True
-        assert pressed == [True]
+        assert hotkey.handle(key("E")) is True
+        assert pressed == [True, True]
 
     def test_ignores_other_keys_and_events(self) -> None:
         pressed: list[bool] = []

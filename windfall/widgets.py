@@ -428,6 +428,7 @@ class FooterEditor(Panel):
 class Hotkey(Component):
     """A non-visual key binding that fires when its key is pressed.
 
+    Matching is case-insensitive, so ``"e"`` fires on both ``e`` and ``E``.
     Place it after text inputs in a container so typing takes precedence:
     a focused input consumes its keys before delivery reaches the hotkey.
     """
@@ -444,7 +445,8 @@ class Hotkey(Component):
         return None
 
     def handle(self, event: Event) -> bool:
-        if event.kind != KEY or event.data.get("key") != self._key:
+        key = event.data.get("key", "")
+        if event.kind != KEY or key.lower() != self._key.lower():
             return False
         if self.on_press is not None:
             self.on_press()
