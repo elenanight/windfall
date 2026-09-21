@@ -204,6 +204,16 @@ class TestListView:
         assert view.handle(move("down")) is False
         assert view.selection == 0
 
+    def test_arrows_release_focus_at_edges(self) -> None:
+        view = ListView(items=["a", "b"])
+        view.focus(True)
+        assert view.handle(move("up")) is False  # already first: let focus leave
+        assert view.selection == 0
+        view.handle(move("down"))
+        assert view.selection == 1
+        assert view.handle(move("down")) is False  # already last: let focus leave
+        assert view.selection == 1
+
     def test_activate_selects_item(self) -> None:
         picks: list[tuple] = []
         view = ListView(items=["a", "b"], on_select=lambda item, index: picks.append((item, index)))

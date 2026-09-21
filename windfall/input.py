@@ -14,7 +14,8 @@ import readchar
 from windfall.events import ACTIVATE, CANCEL, KEY, MOVE, QUIT, Event
 
 _ESC = "\x1b"
-_ESC_TIMEOUT = 0.05
+_ESC_TIMEOUT = 0.15
+_ESC_TOTAL = 1.0
 _MAX_ESC = 6
 
 
@@ -28,15 +29,22 @@ def _read_byte(fd: int) -> str:
 def _read_token(fd: int) -> str:
     """Read one key token, assembling escape sequences into a single token.
 
-    A lone ESC is returned after a short grace period so that ESC itself can
-    still be mapped (e.g. to CANCEL) without blocking forever on a second byte.
+    A lone ESC is returned after a grace period so that ESC itself can
+    still be mapped (e.g. to CANCEL) without blocking forever on a second
+    byte. The grace period is generous because slow or remote terminals
+    can spread a sequence's bytes apart; a total cap keeps a stuck peer
+    from blocking the reader forever.
     """
     first = _read_byte(fd)
     if first != _ESC:
         return first
     token = first
+    deadline = time.monotonic() + _ESC_TOTAL
     while len(token) < _MAX_ESC:
-        ready, _, _ = select.select([fd], [], [], _ESC_TIMEOUT)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return token
+        ready, _, _ = select.select([fd], [], [], min(_ESC_TIMEOUT, remaining))
         if not ready:
             return token
         token += _read_byte(fd)
@@ -79,6 +87,11 @@ class Keymap:
         self.bind(readchar.key.DOWN, MOVE, {"direction": "down"})
         self.bind(readchar.key.LEFT, MOVE, {"direction": "left"})
         self.bind(readchar.key.RIGHT, MOVE, {"direction": "right"})
+        # Application-cursor-mode variants (SS3) sent by some terminals.
+        self.bind("\x1bOA", MOVE, {"direction": "up"})
+        self.bind("\x1bOB", MOVE, {"direction": "down"})
+        self.bind("\x1bOC", MOVE, {"direction": "right"})
+        self.bind("\x1bOD", MOVE, {"direction": "left"})
         self.bind(readchar.key.ENTER, ACTIVATE)
         self.bind("\r", ACTIVATE)
         self.bind("\n", ACTIVATE)

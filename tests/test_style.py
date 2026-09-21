@@ -40,6 +40,13 @@ def test_style_to_rich_omits_unset_fields() -> None:
     assert rich.bold is None
 
 
+def test_style_link_round_trips() -> None:
+    url = "https://github.com/elenanight/windfall"
+    assert Style(link=url).to_rich().link == url
+    assert Style(fg="red").merge(Style(link=url)).link == url
+    assert Style.from_dict({"link": url}).link == url
+
+
 def test_style_from_dict_ignores_unknown_keys() -> None:
     style = Style.from_dict({"fg": "red", "bogus": True})
     assert style.fg == "red"

@@ -278,10 +278,14 @@ class ListView(Component):
         if event.kind == MOVE:
             direction = event.data.get("direction")
             if direction == "down":
-                self._selected = min(len(self._items) - 1, self._selected + 1)
+                if self._selected >= len(self._items) - 1:
+                    return False
+                self._selected += 1
                 return True
             if direction == "up":
-                self._selected = max(0, self._selected - 1)
+                if self._selected <= 0:
+                    return False
+                self._selected -= 1
                 return True
             return False
         if event.kind == ACTIVATE:

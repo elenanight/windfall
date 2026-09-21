@@ -1,7 +1,7 @@
 # Windfall
 
 <!-- badges:start -->
-[![version](https://img.shields.io/badge/version-0.2.4-blue)](https://github.com/elenanight/windfall)
+[![version](https://img.shields.io/badge/version-0.2.5-blue)](https://github.com/elenanight/windfall)
 [![stable](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=main&label=stable)](https://github.com/elenanight/windfall/actions)
 [![dev](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=dev&label=dev)](https://github.com/elenanight/windfall/actions)
 [![changelog](https://img.shields.io/badge/latest-changelog-orange)](https://github.com/elenanight/windfall/blob/main/CHANGELOG.md)
@@ -17,11 +17,27 @@ primitives, compose them into scenes and frames, animate them with a shared,
 explicitly-advanced clock, and drive the whole thing from one engine loop —
 headless and interactive alike.
 
+## Roadmap
+
+A teaser of what's coming. Full detail for each item will live in the
+wiki once it exists.
+
+- **Project manager TUI** *(in progress)* — browse, open, archive, and
+  delete apps without leaving the terminal.
+- **Boot splash** *(planned)* — ASCII-art logo fade-in with a progress
+  bar that lands in the project menu.
+- **Animation release** *(planned)* — motion primitives and scripted
+  transitions built on the deterministic clock.
+- **Widget guides** *(planned)* — per-widget usage docs in the wiki.
+- **Vember OS** *(long term)* — a node-based OS rendering through
+  Windfall as an imported package.
+
 ## Quick start
 
 ```bash
 uv sync
 uv run windfall demo                  # interactive demo
+uv run windfall menu                  # browse, open, and manage projects
 uv run windfall new myapp             # scaffold a new app into project/myapp
 cd project/myapp && uv run python app.py   # run it
 uv run python examples/snake.py       # or play a game
@@ -35,11 +51,11 @@ layers compose freely:
 | Layer | Types | Role |
 | --- | --- | --- |
 | Primitives | `Text`, `Spacer`, `Divider`, `Border`, `Box`, `Connector` | draw into a canvas |
-| Widgets | `Label`, `Button`, `Panel`, `TextInput`, `ListView`, `Header`, `Footer`, `HeaderEditor`, `FooterEditor`, `Hotkey` | interactive primitives |
-| Layout | `Container`, `Row`, `Column`, `Stack`, `Center` | position children |
+| Widgets | `Label`, `Button`, `Panel`, `TextInput`, `ListView`, `Header`, `Footer`, `HeaderEditor`, `FooterEditor`, `Hotkey`, `AddWidget`, `RemoveWidget`, `EditMenu` | interactive primitives |
+| Layout | `Container`, `Row`, `Column`, `Stack`, `Center` | position children (`Row` fills and weights available space on request) |
 | Animation | `Tween`, `Animation`, `Timeline`, `Clock` | deterministic motion |
 | Views | `Scene`, `Frame`, `FrameStack` | trees, focus, navigation |
-| Engine | `Engine`, `Compositor` | input -> events -> tick -> `rich.Live` |
+| Engine | `Engine`, `Compositor` | input -> events -> tick -> `rich.Live`; assembles bars and widgets |
 | Settings | `Config` | JSON settings with defaults fallback |
 
 ## Scaffolded apps
@@ -48,12 +64,14 @@ layers compose freely:
 with a header bar, a footer bar, and a menu wired with node-style
 connectors:
 
-- **In-place editors** — open the header or footer editor from the menu,
-  pick text plus curated border/text colors, and save. Choices persist to
-  `.windfallrc.json`, so later runs rebuild the bars automatically.
-- **Hotkeys** — `A` focuses the Add widget slot, `E` focuses the first
-  menu action, `Q` quits. Arrow keys move focus, Enter activates.
-- **Content section** — a labeled panel marking where your own widgets go.
+- **Editors** — one Edit button drills into header, footer, and placed
+  widgets. Bars offer text, curated colors, and visible flags; widgets
+  offer kind, placement, and stretch. Everything persists to
+  `.windfallrc.json` and rebuilds on launch.
+- **Hotkeys** — `A` add, `E` edit, `R` remove, `Q` back. Arrow keys move
+  focus, Enter activates.
+- **Content section** — add widgets by palette, place them left, center,
+  right, full width, or sidebar, and remove them the same way.
 
 ## CLI
 
@@ -61,16 +79,46 @@ connectors:
 windfall new NAME [--template app] [--dest DIR] [--yes]   scaffold into DIR/project/NAME; asks to run it on a terminal (--yes skips that)
 windfall run [app.py]                             run a file (default: the demo)
 windfall demo [--headless] [--ticks N]            run the built-in demo
+windfall menu [--dir DIR]                         browse, open, archive, and delete projects
 windfall example NAME [--headless] [--ticks N]    run a bundled example (menu/bouncer/snake)
 windfall check [--ticks N]                        headless smoke check (exit 0/1)
 windfall list app.py                              list Scene/Component subclasses (AST)
 windfall help | --help | --version
 ```
 
-Every subcommand also has a shortcut flag (`--create`, `--run`, `--demo`,
-`--example`, `--check`, `--list`, plus `--examples` to list examples).
+Every subcommand also has a shortcut flag:
+
+```
+windfall --create NAME [--template] [--dest]      ≡ windfall new
+windfall --run PATH                               ≡ windfall run
+windfall --demo [--headless] [--ticks]            ≡ windfall demo
+windfall --menu                                     ≡ windfall menu
+windfall --example NAME [--headless] [--ticks]    ≡ windfall example
+windfall --check [--ticks]                        ≡ windfall check
+windfall --list PATH                              ≡ windfall list
+windfall --examples                               list the bundled examples
+```
+
 `demo`, `check`, and every run share the same `Engine.step` code path, so a
 `--headless` pass is equivalent to a real terminal session.
+
+## Project manager
+
+`windfall menu` (or `windfall --menu`) opens an interactive project
+manager built from the same widgets apps use — a header bar, a project
+list with an info sidebar, action buttons, and a footer with credits.
+Point it elsewhere with `windfall menu --dir DIR` (it scans
+`DIR/project`).
+
+- **New** — inline name form; scaffolds straight into the list.
+- **Open** — runs the selected app in its own folder, then returns.
+- **Delete** — asks inline first (`Yes`/`No`); only `Yes` removes it.
+- **Archive** — moves the app to `project/.archive/<name>-<timestamp>/`.
+- **Quit** — leaves with a farewell line once the terminal restores.
+
+With no projects yet, the list says so and the status line points at
+`New`. Every action narrates itself in the status line, and the sidebar
+keeps a live project count.
 
 ## Examples
 
@@ -103,12 +151,3 @@ suite enforces this with an `ast`-based audit (`tests/budget.py`):
 - more than 10 methods -> `[BUDGET-ERROR]` and the test fails
 - 9-10 methods -> `[BUDGET-WARNING]` naming the class and methods
 
-### Releasing
-
-`pyproject.toml` holds the released version. After bumping it, run the sync
-script to refresh the README version badge and `__version__` together:
-
-```bash
-uv run python scripts/update_readme.py            # update badges + __version__
-uv run python scripts/update_readme.py --check    # verify they are in sync (CI-friendly)
-```
