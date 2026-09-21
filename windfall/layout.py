@@ -124,7 +124,17 @@ class Stack(Container):
 
 
 class Center(Container):
-    """Centers each child within the available rect at its natural size."""
+    """Positions each child within the available rect at its natural size.
+
+    ``align`` pins children horizontally: ``"left"``, ``"center"`` (the
+    default), or ``"right"``. Vertical placement stays centered.
+    """
+
+    def __init__(self, align: str = "center") -> None:
+        if align not in ("left", "center", "right"):
+            raise ValueError(f"align must be one of left/center/right, got {align!r}")
+        super().__init__()
+        self._align = align
 
     def size(self) -> Vec2:
         width = max((child.size().x for child in self.children), default=0)
@@ -134,8 +144,14 @@ class Center(Container):
     def draw(self, canvas, rect: Rect) -> None:
         for child in self.children:
             child_size = child.size()
+            if self._align == "left":
+                dx = 0
+            elif self._align == "right":
+                dx = rect.width - child_size.x
+            else:
+                dx = (rect.width - child_size.x) // 2
             inner = Rect(
-                rect.x + max(0, (rect.width - child_size.x) // 2),
+                rect.x + max(0, dx),
                 rect.y + max(0, (rect.height - child_size.y) // 2),
                 child_size.x,
                 child_size.y,

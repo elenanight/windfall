@@ -54,7 +54,7 @@ def build(engine: Engine) -> Scene:
     actions_center.add(actions)
     body.add(actions_center)
     dialog = Panel(body, title="@@title@@", padding=1)
-    dialog_center = Center()
+    dialog_center = Center(align="right")
     dialog_center.add(dialog)
     main = Column()
     main.add(header)
@@ -113,8 +113,6 @@ def build(engine: Engine) -> Scene:
         footer.set_colors(border=border, fg=fg)
         close_editor()
 
-    if not CONFIG_PATH.exists():
-        open_editor("header")
     return scene
 
 

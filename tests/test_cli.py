@@ -204,8 +204,16 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
 
     scene = module.build(Engine())
     assert scene.name == "myapp"
+    assert _find_all(scene.root, HeaderEditor) == []  # user opens the editor now
+
+    buttons = [w for w in focusables(scene.root) if isinstance(w, Button)]
+    _, edit_header, _, _ = buttons
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    edit_header.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
     editors = _find_all(scene.root, HeaderEditor)
-    assert len(editors) == 1  # first run opens the editor in place
+    assert len(editors) == 1  # menu opens the editor in place
 
     save, _ = [w for w in focusables(editors[0]) if isinstance(w, Button)]
     for widget in focusables(scene.root):

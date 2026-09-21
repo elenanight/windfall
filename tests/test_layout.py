@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from windfall.canvas import Canvas
 from windfall.geom import Rect, Vec2
 from windfall.layout import Center, Column, Row, Stack
@@ -110,3 +112,29 @@ def test_center_clips_when_child_is_larger_than_rect() -> None:
     canvas = Canvas(2, 1)
     center.draw(canvas, Rect(0, 0, 2, 1))
     assert canvas.text() == ["ab"]
+
+
+def test_center_align_left_pins_child_to_left_edge() -> None:
+    center = Center(align="left")
+    center.add(Text("ab"))
+    canvas = Canvas(6, 1)
+    center.draw(canvas, Rect(0, 0, 6, 1))
+    assert canvas.text() == ["ab    "]
+
+
+def test_center_align_right_pins_child_to_right_edge() -> None:
+    center = Center(align="right")
+    center.add(Text("ab"))
+    canvas = Canvas(6, 1)
+    center.draw(canvas, Rect(0, 0, 6, 1))
+    assert canvas.text() == ["    ab"]
+
+
+def test_center_align_defaults_to_center_and_rejects_unknown() -> None:
+    center = Center()
+    center.add(Text("ab"))
+    canvas = Canvas(6, 1)
+    center.draw(canvas, Rect(0, 0, 6, 1))
+    assert canvas.text() == ["  ab  "]
+    with pytest.raises(ValueError):
+        Center(align="diagonal")
