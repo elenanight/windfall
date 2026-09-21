@@ -64,8 +64,7 @@ def build_menu(engine: Engine, base=None) -> Scene:
     body.add(status)
     body.add(view)
     body.add(actions)
-    body.add(Label("Enter: activate · arrows: move · Ctrl+C: quit", align="center"))
-    dialog = Panel(body, title="Windfall projects", padding=1)
+    dialog = Panel(body, title="Windfall - Projects", padding=1)
     root = Center()
     root.add(dialog)
     scene = Scene(name="menu", root=root)
@@ -83,20 +82,30 @@ def build_menu(engine: Engine, base=None) -> Scene:
         return projects[index]
 
     def restore_actions() -> None:
+        if state.get("form") is not None:
+            body.remove(state["form"])
+            state["form"] = None
         actions.clear()
         for child in action_buttons:
             child.focus(False)
             actions.add(child)
 
     def show_new_form() -> None:
-        actions.clear()
-        actions.add(Label("Name:"))
+        restore_actions()
         field = TextInput()
         create = Button("Create", on_activate=lambda: do_create(field))
         cancel = Button("Cancel", on_activate=restore_actions)
-        actions.add(field)
-        actions.add(create)
-        actions.add(cancel)
+        form = Column()
+        namerow = Row(fill=True, weights=[0, 1])
+        namerow.add(Label("Name:"))
+        namerow.add(field)
+        btnrow = Row()
+        btnrow.add(create)
+        btnrow.add(cancel)
+        form.add(namerow)
+        form.add(btnrow)
+        state["form"] = form
+        body.add(form)
         for widget in focusables(scene.root):
             widget.focus(False)
         field.focus(True)
@@ -123,6 +132,7 @@ def build_menu(engine: Engine, base=None) -> Scene:
         yes.focus(True)
 
     def do_open() -> None:
+        restore_actions()
         target = selected()
         if target is None:
             status.set_text("Nothing to open.")
@@ -136,6 +146,7 @@ def build_menu(engine: Engine, base=None) -> Scene:
         refresh(f"Back from {target.name}.")
 
     def request_delete() -> None:
+        restore_actions()
         target = selected()
         if target is None:
             status.set_text("Nothing to delete.")
@@ -143,6 +154,7 @@ def build_menu(engine: Engine, base=None) -> Scene:
         show_confirm(target)
 
     def do_archive() -> None:
+        restore_actions()
         target = selected()
         if target is None:
             status.set_text("Nothing to archive.")
