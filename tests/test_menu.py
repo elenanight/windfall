@@ -71,6 +71,34 @@ def test_find_projects_skips_dot_dirs(tmp_path: Path) -> None:
     assert [p.name for p in menu_module.find_projects(tmp_path)] == ["app"]
 
 
+def test_format_size_uses_clean_units() -> None:
+    assert menu_module.format_size(0) == "0 B"
+    assert menu_module.format_size(512) == "512 B"
+    assert menu_module.format_size(1024) == "1 KB"
+    assert menu_module.format_size(1536) == "1.5 KB"
+    assert menu_module.format_size(1024 * 1024) == "1 MB"
+    assert menu_module.format_size(5 * 1024**3) == "5 GB"
+    assert menu_module.format_size(2 * 1024**4) == "2 TB"
+
+
+def test_dir_size_sums_nested_files(tmp_path: Path) -> None:
+    target = _make_project(tmp_path, "myapp")
+    (target / "app.py").write_bytes(b"x" * 100)
+    nested = target / "sub"
+    nested.mkdir()
+    (nested / "data.bin").write_bytes(b"y" * 200)
+    assert menu_module.dir_size(target) == 300
+
+
+def test_sidebar_shows_total_size(tmp_path: Path) -> None:
+    from windfall import Compositor
+
+    target = _make_project(tmp_path, "myapp")
+    (target / "app.py").write_bytes(b"x" * 2048)
+    scene = menu_module.build_menu(Engine(), tmp_path)
+    assert any("2 KB" in line for line in Compositor().text(scene))
+
+
 def test_open_runs_app_in_its_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     calls: list = []
     _stub_run(monkeypatch, calls)

@@ -23,6 +23,7 @@ from windfall_cli.scaffold import Scaffolder
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 ARCHIVE_DIR = ".archive"
 EMPTY = "(no projects yet)"
+_UNITS = ("B", "KB", "MB", "GB", "TB")
 
 
 def find_projects(base=None) -> list[Path]:
@@ -45,6 +46,31 @@ def _names(projects: list[Path]) -> list[str]:
     return [project.name for project in projects] or [EMPTY]
 
 
+def dir_size(path: Path) -> int:
+    """Total bytes under ``path``, skipping anything unreadable."""
+    total = 0
+    for dirpath, _dirnames, filenames in os.walk(path, followlinks=False):
+        for name in filenames:
+            try:
+                total += os.path.getsize(os.path.join(dirpath, name))
+            except OSError:
+                continue
+    return total
+
+
+def format_size(num_bytes: int) -> str:
+    """Format a byte count cleanly as B/KB/MB/GB/TB."""
+    size = float(max(0, num_bytes))
+    unit = _UNITS[0]
+    for candidate in _UNITS[1:]:
+        if size < 1024:
+            break
+        size /= 1024
+        unit = candidate
+    text = f"{size:.1f}".rstrip("0").rstrip(".")
+    return f"{text} {unit}"
+
+
 def build_menu(engine: Engine, base=None) -> Scene:
     """Assemble the project manager scene for ``<base>/project``."""
     from windfall import __version__
@@ -60,13 +86,14 @@ def build_menu(engine: Engine, base=None) -> Scene:
     main.add(status)
     main.add(view)
     main.add(actions)
-    main.add(Label("N new · O open · D delete · A archive · X quit · arrows move · Enter activate", align="center"))
+    main.add(Label("N new · O open · D delete · A archive · X quit", align="center"))
+    main.add(Label("arrows move · Enter activates", align="center"))
     info = Column()
     info.add(Label(f"Windfall {__version__}", align="center"))
     info_count = Label("", align="center")
     info.add(info_count)
-    count = len(state["projects"])
-    info_count.set_text(f"{count} project" + ("" if count == 1 else "s"))
+    info_size = Label("", align="center")
+    info.add(info_size)
     aside = Column()
     aside.add(Panel(info, title="Info", padding=1))
     body = Row(fill=True, weights=[1, 0])
@@ -91,12 +118,19 @@ def build_menu(engine: Engine, base=None) -> Scene:
     root.add(footer)
     scene = Scene(name="menu", root=root)
 
+    def _sync_info() -> None:
+        count = len(state["projects"])
+        info_count.set_text(f"{count} project" + ("" if count == 1 else "s"))
+        total = sum(dir_size(project) for project in state["projects"])
+        info_size.set_text(format_size(total))
+
     def refresh(message: str = "") -> None:
         state["projects"] = find_projects(root_path)
         view.set_items(_names(state["projects"]))
-        count = len(state["projects"])
-        info_count.set_text(f"{count} project" + ("" if count == 1 else "s"))
+        _sync_info()
         status.set_text(message)
+
+    _sync_info()
 
     def selected() -> Path | None:
         projects = state["projects"]
@@ -257,11 +291,11 @@ def build_menu(engine: Engine, base=None) -> Scene:
         refresh(f"Deleted {target.name}.")
         restore_actions()
 
-    new_btn = Button("New", on_activate=show_new_form)
-    open_btn = Button("Open", on_activate=do_open)
-    delete_btn = Button("Delete", on_activate=request_delete)
-    archive_btn = Button("Archive", on_activate=do_archive)
-    quit_btn = Button("Quit", on_activate=engine.stop)
+    new_btn = Button("New", on_activate=show_new_form, padding=0)
+    open_btn = Button("Open", on_activate=do_open, padding=0)
+    delete_btn = Button("Delete", on_activate=request_delete, padding=0)
+    archive_btn = Button("Archive", on_activate=do_archive, padding=0)
+    quit_btn = Button("Quit", on_activate=engine.stop, padding=0)
     action_buttons = [new_btn, open_btn, delete_btn, archive_btn, quit_btn]
     restore_actions()
 
