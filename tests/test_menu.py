@@ -158,6 +158,11 @@ def test_menu_help_lists_subcommand(capsys) -> None:
     assert "menu" in capsys.readouterr().out
 
 
+def test_farewell_prints_shutdown_line(capsys) -> None:
+    menu_module.farewell()
+    assert "Thanks for using Windfall. Goodbye!" in capsys.readouterr().out
+
+
 def test_new_creates_project_and_refreshes(tmp_path: Path) -> None:
     scene = menu_module.build_menu(Engine(), tmp_path)
     new, _, _, _, _ = _buttons(scene)

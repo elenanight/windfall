@@ -199,4 +199,10 @@ def main(root=None) -> int:
     engine = Engine()
     engine.use_scene(build_menu(engine, root))
     engine.run()
+    farewell()
     return 0
+
+
+def farewell() -> None:
+    """Print the shutdown line after the loop exits and the terminal restores."""
+    print("Thanks for using Windfall. Goodbye!")
