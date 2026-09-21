@@ -284,8 +284,8 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
 
     for widget in focusables(scene.root):
         widget.focus(False)
-    assert scene.handle(Event(KEY, {"key": "a"})) is True
-    assert buttons[0].focused is True  # A focuses Add widget
+    assert scene.handle(Event(KEY, {"key": "w"})) is True
+    assert buttons[0].focused is True  # W focuses Add widget
 
     for widget in focusables(scene.root):
         widget.focus(False)
