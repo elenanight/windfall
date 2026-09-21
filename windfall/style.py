@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from rich.style import Style as _RichStyle
 
-_STYLE_FIELDS = ("fg", "bg", "bold", "italic", "underline")
+_STYLE_FIELDS = ("fg", "bg", "bold", "italic", "underline", "link")
 
 
 @dataclass
@@ -21,6 +21,7 @@ class Style:
     bold: bool | None = None
     italic: bool | None = None
     underline: bool | None = None
+    link: str | None = None
 
     def merge(self, other: Style) -> Style:
         return Style(
@@ -29,6 +30,7 @@ class Style:
             bold=other.bold if other.bold is not None else self.bold,
             italic=other.italic if other.italic is not None else self.italic,
             underline=other.underline if other.underline is not None else self.underline,
+            link=other.link if other.link is not None else self.link,
         )
 
     def to_rich(self) -> _RichStyle:
@@ -38,6 +40,7 @@ class Style:
             "bold": self.bold,
             "italic": self.italic,
             "underline": self.underline,
+            "link": self.link,
         }
         return _RichStyle(**{name: value for name, value in params.items() if value is not None})
 
