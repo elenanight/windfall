@@ -12,11 +12,24 @@ import subprocess
 import time
 from pathlib import Path
 
-from windfall import Button, Center, Column, Engine, Label, ListView, Panel, Row, Scene
+from windfall import (
+    Button,
+    Center,
+    Column,
+    Engine,
+    Label,
+    ListView,
+    Panel,
+    Row,
+    Scene,
+    TextInput,
+)
 from windfall.scene import focusables
+from windfall_cli.scaffold import Scaffolder
 
+TEMPLATES_DIR = Path(__file__).parent / "templates"
 ARCHIVE_DIR = ".archive"
-EMPTY = "(no projects yet — run `windfall new <name>`)"
+EMPTY = "(no projects yet)"
 
 
 def find_projects(base=None) -> list[Path]:
@@ -41,8 +54,9 @@ def _names(projects: list[Path]) -> list[str]:
 
 def build_menu(engine: Engine, base=None) -> Scene:
     """Assemble the project manager scene for ``<base>/project``."""
-    state: dict = {"projects": find_projects(base)}
-    status = Label("")
+    root_path = Path(base) if base is not None else Path.cwd()
+    state: dict = {"projects": find_projects(root_path)}
+    status = Label("Press New to scaffold your first app." if not state["projects"] else "")
     view = ListView(items=_names(state["projects"]))
     view.focus(True)
     actions = Row()
@@ -73,6 +87,29 @@ def build_menu(engine: Engine, base=None) -> Scene:
         for child in action_buttons:
             child.focus(False)
             actions.add(child)
+
+    def show_new_form() -> None:
+        actions.clear()
+        actions.add(Label("Name:"))
+        field = TextInput()
+        create = Button("Create", on_activate=lambda: do_create(field))
+        cancel = Button("Cancel", on_activate=restore_actions)
+        actions.add(field)
+        actions.add(create)
+        actions.add(cancel)
+        for widget in focusables(scene.root):
+            widget.focus(False)
+        field.focus(True)
+
+    def do_create(field: TextInput) -> None:
+        name = field.value.strip()
+        try:
+            Scaffolder(TEMPLATES_DIR).create(name, destination=root_path)
+        except (ValueError, FileExistsError, FileNotFoundError) as error:
+            status.set_text(f"Could not create: {error}")
+            return
+        refresh(f"Created {name}.")
+        restore_actions()
 
     def show_confirm(target: Path) -> None:
         actions.clear()
@@ -135,11 +172,12 @@ def build_menu(engine: Engine, base=None) -> Scene:
         refresh(f"Deleted {target.name}.")
         restore_actions()
 
+    new_btn = Button("New", on_activate=show_new_form)
     open_btn = Button("Open", on_activate=do_open)
     delete_btn = Button("Delete", on_activate=request_delete)
     archive_btn = Button("Archive", on_activate=do_archive)
     quit_btn = Button("Quit", on_activate=engine.stop)
-    action_buttons = [open_btn, delete_btn, archive_btn, quit_btn]
+    action_buttons = [new_btn, open_btn, delete_btn, archive_btn, quit_btn]
     restore_actions()
     return scene
 

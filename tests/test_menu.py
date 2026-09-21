@@ -8,9 +8,9 @@ from types import SimpleNamespace
 import pytest
 
 from windfall import Engine
-from windfall.events import ACTIVATE, MOVE, Event
+from windfall.events import ACTIVATE, KEY, Event
 from windfall.scene import focusables
-from windfall.widgets import Button, ListView
+from windfall.widgets import Button, ListView, TextInput
 from windfall_cli import cli
 from windfall_cli import menu as menu_module
 
@@ -26,8 +26,8 @@ def _buttons(scene) -> list[Button]:
     return [w for w in focusables(scene.root) if isinstance(w, Button)]
 
 
-def _move(direction: str) -> Event:
-    return Event(MOVE, {"direction": direction})
+def _key(char: str) -> Event:
+    return Event(KEY, {"key": char})
 
 
 def _stub_run(monkeypatch: pytest.MonkeyPatch, calls: list) -> None:
@@ -64,7 +64,7 @@ def test_open_runs_app_in_its_directory(tmp_path: Path, monkeypatch: pytest.Monk
     _stub_run(monkeypatch, calls)
     target = _make_project(tmp_path, "myapp")
     scene = menu_module.build_menu(Engine(), tmp_path)
-    open_btn, _, _, _ = _buttons(scene)
+    _, open_btn, _, _, _ = _buttons(scene)
     for widget in focusables(scene.root):
         widget.focus(False)
     open_btn.focus(True)
@@ -79,7 +79,7 @@ def test_delete_asks_confirm_and_removes(tmp_path: Path) -> None:
     target = _make_project(tmp_path, "myapp")
     _make_project(tmp_path, "other")
     scene = menu_module.build_menu(Engine(), tmp_path)
-    _, delete, _, _ = _buttons(scene)
+    _, _, delete, _, _ = _buttons(scene)
     for widget in focusables(scene.root):
         widget.focus(False)
     delete.focus(True)
@@ -98,7 +98,7 @@ def test_delete_asks_confirm_and_removes(tmp_path: Path) -> None:
 def test_delete_no_keeps_project(tmp_path: Path) -> None:
     target = _make_project(tmp_path, "myapp")
     scene = menu_module.build_menu(Engine(), tmp_path)
-    _, delete, _, _ = _buttons(scene)
+    _, _, delete, _, _ = _buttons(scene)
     for widget in focusables(scene.root):
         widget.focus(False)
     delete.focus(True)
@@ -109,13 +109,13 @@ def test_delete_no_keeps_project(tmp_path: Path) -> None:
     no.focus(True)
     assert scene.handle(Event(ACTIVATE)) is True
     assert target.is_dir()
-    assert len(_buttons(scene)) == 4  # actions restored
+    assert len(_buttons(scene)) == 5  # actions restored
 
 
 def test_archive_moves_to_timestamped_dir(tmp_path: Path) -> None:
     target = _make_project(tmp_path, "myapp")
     scene = menu_module.build_menu(Engine(), tmp_path)
-    _, _, archive, _ = _buttons(scene)
+    _, _, _, archive, _ = _buttons(scene)
     for widget in focusables(scene.root):
         widget.focus(False)
     archive.focus(True)
@@ -129,11 +129,24 @@ def test_archive_moves_to_timestamped_dir(tmp_path: Path) -> None:
 
 def test_empty_menu_actions_are_noops(tmp_path: Path) -> None:
     scene = menu_module.build_menu(Engine(), tmp_path)
-    for button in _buttons(scene):
+
+    def press(button) -> None:
         for widget in focusables(scene.root):
             widget.focus(False)
         button.focus(True)
         assert scene.handle(Event(ACTIVATE)) is True
+
+    buttons = [w for w in focusables(scene.root) if isinstance(w, Button)]
+    new, open_btn, delete, archive, quit = buttons
+    press(open_btn)
+    press(delete)
+    press(archive)
+    press(quit)
+    press(new)
+    assert len([w for w in focusables(scene.root) if isinstance(w, TextInput)]) == 1
+    cancel = [w for w in focusables(scene.root) if isinstance(w, Button)][-1]
+    press(cancel)
+    assert not [w for w in focusables(scene.root) if isinstance(w, TextInput)]
     views = [w for w in focusables(scene.root) if isinstance(w, ListView)]
     assert "no projects" in views[0]._items[0]
 
@@ -143,3 +156,47 @@ def test_menu_help_lists_subcommand(capsys) -> None:
         cli.main(["menu", "--help"])
     assert exc.value.code == 0
     assert "menu" in capsys.readouterr().out
+
+
+def test_new_creates_project_and_refreshes(tmp_path: Path) -> None:
+    scene = menu_module.build_menu(Engine(), tmp_path)
+    new, _, _, _, _ = _buttons(scene)
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    new.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+    fields = [w for w in focusables(scene.root) if isinstance(w, TextInput)]
+    assert len(fields) == 1  # name form opens in place
+    fields[0].focus(True)
+    for char in "ab":
+        assert fields[0].handle(_key(char)) is True
+    fields[0].focus(False)
+    create, _ = [w for w in focusables(scene.root) if isinstance(w, Button)][-2:]
+    create.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+    assert (tmp_path / "project" / "ab" / "app.py").is_file()
+    views = [w for w in focusables(scene.root) if isinstance(w, ListView)]
+    assert "ab" in views[0]._items
+    assert len(_buttons(scene)) == 5  # actions restored
+
+
+def test_new_invalid_name_stays_with_error(tmp_path: Path) -> None:
+    from windfall import Compositor
+
+    scene = menu_module.build_menu(Engine(), tmp_path)
+    new, _, _, _, _ = _buttons(scene)
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    new.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+    fields = [w for w in focusables(scene.root) if isinstance(w, TextInput)]
+    fields[0].focus(True)
+    for char in "9bad":
+        fields[0].handle(_key(char))
+    fields[0].focus(False)
+    create, _ = [w for w in focusables(scene.root) if isinstance(w, Button)][-2:]
+    create.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+    assert not (tmp_path / "project" / "9bad").exists()
+    assert len([w for w in focusables(scene.root) if isinstance(w, TextInput)]) == 1
+    assert any("Could not create" in line for line in Compositor().text(scene))
