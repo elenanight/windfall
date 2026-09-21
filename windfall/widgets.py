@@ -554,6 +554,12 @@ class AddWidget(Panel):
         if self.on_add is not None:
             self.on_add(kind, placement, stretch)
 
+    def preset(self, kind: str, placement: str, stretch: bool) -> None:
+        """Preselect lists for editing an existing placement."""
+        self._types.select(_index_of(self._kinds, kind))
+        self._places.select(_index_of(self._placements, placement))
+        self._stretch.select(1 if stretch else 0)
+
     def _abort(self) -> None:
         if self.on_cancel is not None:
             self.on_cancel()
@@ -594,6 +600,49 @@ class RemoveWidget(Panel):
             return
         if self.on_remove is not None:
             self.on_remove(self._list.selection)
+
+    def _abort(self) -> None:
+        if self.on_cancel is not None:
+            self.on_cancel()
+
+
+class EditMenu(Panel):
+    """Drill-down list of editable things: bars first, then placed widgets.
+
+    Entries are display strings; ``on_pick`` receives the selected index
+    and ``on_cancel`` takes no arguments. Picking fires straight from the
+    list, so there is no confirm button — just Cancel.
+    """
+
+    def __init__(
+        self,
+        entries=None,
+        *,
+        on_pick=None,
+        on_cancel=None,
+        title: str = "Edit",
+    ) -> None:
+        self._entries = list(entries or [])
+        self.on_pick = on_pick
+        self.on_cancel = on_cancel
+        self._list = ListView(
+            items=self._entries or ["(nothing to edit)"],
+            on_select=self._pick,
+        )
+        body = Column()
+        body.add(Label("What to edit:"))
+        body.add(self._list)
+        body.add(Connector("available"))
+        actions = Row()
+        actions.add(Button("Cancel", on_activate=self._abort))
+        body.add(actions)
+        super().__init__(body, title=title, padding=1)
+
+    def _pick(self, item: str, index: int) -> None:
+        if not self._entries:
+            return
+        if self.on_pick is not None:
+            self.on_pick(index)
 
     def _abort(self) -> None:
         if self.on_cancel is not None:

@@ -42,6 +42,7 @@ from windfall.style import Style, Theme
 from windfall.widgets import (
     AddWidget,
     Button,
+    EditMenu,
     Footer,
     FooterEditor,
     Header,
@@ -81,6 +82,7 @@ __all__ = [
     "Connector",
     "Container",
     "Divider",
+    "EditMenu",
     "Engine",
     "Event",
     "EventQueue",

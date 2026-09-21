@@ -13,6 +13,7 @@ from windfall.widgets import (
     TEXT_COLORS,
     AddWidget,
     Button,
+    EditMenu,
     Footer,
     FooterEditor,
     Header,
@@ -524,6 +525,49 @@ class TestRemoveWidget:
         remove.focus(True)
         assert _hosted(editor).handle(Event(ACTIVATE)) is True
         assert removed == []
+
+
+class TestEditMenu:
+    def test_pick_delivers_selected_index(self) -> None:
+        picked: list[int] = []
+        menu = EditMenu(["Header bar", "Footer bar"], on_pick=picked.append)
+        views = [w for w in focusables(menu) if isinstance(w, ListView)]
+        views[0].focus(True)
+        views[0].handle(move("down"))
+        assert _hosted(menu).handle(Event(ACTIVATE)) is True
+        assert picked == [1]
+
+    def test_cancel_calls_on_cancel_only(self) -> None:
+        picked: list[int] = []
+        cancelled: list[bool] = []
+        menu = EditMenu(
+            ["Header bar"],
+            on_pick=picked.append,
+            on_cancel=lambda: cancelled.append(True),
+        )
+        cancel = next(w for w in focusables(menu) if isinstance(w, Button))
+        cancel.focus(True)
+        assert _hosted(menu).handle(Event(ACTIVATE)) is True
+        assert cancelled == [True]
+        assert picked == []
+
+    def test_empty_entries_pick_is_noop(self) -> None:
+        picked: list[int] = []
+        menu = EditMenu([], on_pick=picked.append)
+        views = [w for w in focusables(menu) if isinstance(w, ListView)]
+        views[0].focus(True)
+        assert _hosted(menu).handle(Event(ACTIVATE)) is True
+        assert picked == []
+
+
+class TestAddWidgetPreset:
+    def test_preset_selects_current_values(self) -> None:
+        editor = AddWidget()
+        editor.preset("ListView", "sidebar", True)
+        kinds, places, stretches = [w for w in focusables(editor) if isinstance(w, ListView)]
+        assert kinds.selection == 3
+        assert places.selection == 4
+        assert stretches.selection == 1
 
 
 class TestHotkey:
