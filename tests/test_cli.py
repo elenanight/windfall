@@ -280,6 +280,11 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert scene.handle(Event(KEY, {"key": "a"})) is True
     assert buttons[0].focused is True  # A focuses Add widget
 
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    assert scene.handle(Event(KEY, {"key": "r"})) is True
+    assert buttons[1].focused is True  # R focuses Remove widget
+
     engine.running = True
     assert scene.handle(Event(KEY, {"key": "q"})) is True
     assert engine.running is False  # Q quits outright
@@ -311,7 +316,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert config_path.is_file()
     assert "hello from myapp!" in config_path.read_text(encoding="utf-8")
     assert _find_all(scene.root, HeaderEditor) == []
-    assert len(_find_all(scene.root, Hotkey)) == 3  # hotkeys restored after close
+    assert len(_find_all(scene.root, Hotkey)) == 4  # hotkeys restored after close
 
     again_engine = Engine()
     again = module.build(again_engine)

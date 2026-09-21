@@ -433,10 +433,12 @@ class TestFooterEditor:
 
 
 class TestAddWidget:
-    def test_save_delivers_kind_and_placement(self) -> None:
+    def test_save_delivers_kind_placement_and_stretch(self) -> None:
         added: list[tuple] = []
-        editor = AddWidget(on_add=lambda kind, placement: added.append((kind, placement)))
-        kinds, places = [w for w in focusables(editor) if isinstance(w, ListView)]
+        editor = AddWidget(
+            on_add=lambda kind, placement, stretch: added.append((kind, placement, stretch))
+        )
+        kinds, places, stretches = [w for w in focusables(editor) if isinstance(w, ListView)]
         kinds.focus(True)
         kinds.handle(move("down"))
         kinds.handle(move("down"))
@@ -445,16 +447,19 @@ class TestAddWidget:
         for _ in range(4):
             places.handle(move("down"))
         places.focus(False)
+        stretches.focus(True)
+        stretches.handle(move("down"))
+        stretches.focus(False)
         save, _ = _editor_buttons(editor)
         save.focus(True)
         assert _hosted(editor).handle(Event(ACTIVATE)) is True
-        assert added == [("TextInput", "sidebar")]
+        assert added == [("TextInput", "sidebar", True)]
 
     def test_cancel_calls_on_cancel_only(self) -> None:
         added: list[tuple] = []
         cancelled: list[bool] = []
         editor = AddWidget(
-            on_add=lambda kind, placement: added.append((kind, placement)),
+            on_add=lambda kind, placement, stretch: added.append((kind, placement, stretch)),
             on_cancel=lambda: cancelled.append(True),
         )
         _, cancel = _editor_buttons(editor)
@@ -462,6 +467,25 @@ class TestAddWidget:
         assert _hosted(editor).handle(Event(ACTIVATE)) is True
         assert cancelled == [True]
         assert added == []
+
+    def test_refusal_stays_open_with_reason(self) -> None:
+        added: list[tuple] = []
+        editor = AddWidget(
+            on_add=lambda kind, placement, stretch: added.append((kind, placement, stretch)),
+            fits=lambda kind, placement, stretch: "No room",
+        )
+        save, _ = _editor_buttons(editor)
+        save.focus(True)
+        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert added == []
+        assert any("No room" in line for line in render(editor))
+
+    def test_columns_share_equal_widths_for_thirds(self) -> None:
+        editor = AddWidget()
+        widths = {
+            w.size().x for w in focusables(editor) if isinstance(w, ListView)
+        }
+        assert widths == {11}
 
 
 class TestRemoveWidget:
