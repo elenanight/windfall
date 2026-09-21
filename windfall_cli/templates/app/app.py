@@ -30,9 +30,11 @@ DEFAULTS = {
     "header": "hello from @@package@@!",
     "border": "cyan",
     "fg": "bright_white",
+    "header_visible": True,
     "footer": "built with windfall",
     "footer_border": "cyan",
     "footer_fg": "white",
+    "footer_visible": True,
     "widgets": [],
 }
 
@@ -127,6 +129,7 @@ def build(engine: Engine) -> Scene:
                 text=cfg.get("footer"),
                 border=cfg.get("footer_border"),
                 fg=cfg.get("footer_fg"),
+                visible=cfg.get("footer_visible", True),
                 on_save=save_footer,
                 on_cancel=close_editor,
             )
@@ -140,13 +143,17 @@ def build(engine: Engine) -> Scene:
                 text=cfg.get("header"),
                 border=cfg.get("border"),
                 fg=cfg.get("fg"),
+                visible=cfg.get("header_visible", True),
                 on_save=save_header,
                 on_cancel=close_editor,
             )
         _show_editor(editor)
 
     def open_edit_menu() -> None:
-        entries = ["Header bar", "Footer bar"]
+        entries = [
+            "Header bar" + ("" if cfg.get("header_visible", True) else " (hidden)"),
+            "Footer bar" + ("" if cfg.get("footer_visible", True) else " (hidden)"),
+        ]
         entries.extend(f"{spec.get('type')} · {spec.get('placement')}" for spec, _, _ in placed)
         _show_editor(EditMenu(entries, on_pick=pick_edit_target, on_cancel=close_editor))
 
@@ -179,17 +186,31 @@ def build(engine: Engine) -> Scene:
             root.add(hotkey)
         scene.clear_focus_scope()
 
-    def save_header(text: str, border: str, fg: str) -> None:
-        cfg.set("header", text).set("border", border).set("fg", fg).save()
+    def save_header(text: str, border: str, fg: str, visible: bool) -> None:
+        cfg.set("header", text).set("border", border).set("fg", fg).set("header_visible", visible).save()
         header.set_text(text)
         header.set_colors(border=border, fg=fg)
         close_editor()
+        _sync_bars()
 
-    def save_footer(text: str, border: str, fg: str) -> None:
-        cfg.set("footer", text).set("footer_border", border).set("footer_fg", fg).save()
+    def save_footer(text: str, border: str, fg: str, visible: bool) -> None:
+        cfg.set("footer", text).set("footer_border", border).set("footer_fg", fg).set(
+            "footer_visible", visible
+        ).save()
         footer.set_text(text)
         footer.set_colors(border=border, fg=fg)
         close_editor()
+        _sync_bars()
+
+    def _sync_bars() -> None:
+        """Match bar presence to the saved visibility flags."""
+        for bar in (header, footer):
+            if bar in main.children:
+                main.remove(bar)
+        if cfg.get("header_visible", True):
+            main.children.insert(1, header)
+        if cfg.get("footer_visible", True):
+            main.add(footer)
 
     placed: list = []  # (spec, parent, node) records backing removal
 
@@ -260,6 +281,7 @@ def build(engine: Engine) -> Scene:
         parent, node = place_widget(kind, placement, stretch)
         placed.append(({"type": kind, "placement": placement, "stretch": stretch}, parent, node))
 
+    _sync_bars()
     return scene
 
 

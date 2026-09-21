@@ -331,6 +331,55 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert _find_all(scene.root, HeaderEditor) == []
     assert len(_find_all(scene.root, Hotkey)) == 4  # hotkeys restored after close
 
+    buttons = [w for w in focusables(scene.root) if isinstance(w, Button)]
+    _, _, edit, _ = buttons
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    edit.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+    menus = _find_all(scene.root, EditMenu)
+    menu_lists = [w for w in focusables(menus[0]) if isinstance(w, ListView)]
+    menu_lists[0].focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True  # pick "Header bar"
+    editors = _find_all(scene.root, HeaderEditor)
+    views = [w for w in focusables(editors[0]) if isinstance(w, ListView)]
+    views[2].focus(True)
+    views[2].handle(_move("down"))
+    views[2].focus(False)
+    save, _ = [w for w in focusables(editors[0]) if isinstance(w, Button)]
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    save.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+    assert '"header_visible": false' in config_path.read_text(encoding="utf-8")
+    assert not any("hello from myapp!" in line for line in Compositor().text(scene))
+
+    hidden = module.build(Engine())
+    assert not any("hello from myapp!" in line for line in Compositor().text(hidden))
+    buttons = [w for w in focusables(hidden.root) if isinstance(w, Button)]
+    _, _, edit, _ = buttons
+    for widget in focusables(hidden.root):
+        widget.focus(False)
+    edit.focus(True)
+    assert hidden.handle(Event(ACTIVATE)) is True
+    menus = _find_all(hidden.root, EditMenu)
+    menu_lists = [w for w in focusables(menus[0]) if isinstance(w, ListView)]
+    menu_lists[0].focus(True)
+    assert hidden.handle(Event(ACTIVATE)) is True
+    editors = _find_all(hidden.root, HeaderEditor)
+    views = [w for w in focusables(editors[0]) if isinstance(w, ListView)]
+    assert views[2].selection == 1  # still "No" from the saved flag
+    views[2].focus(True)
+    views[2].handle(_move("up"))
+    views[2].focus(False)
+    save, _ = [w for w in focusables(editors[0]) if isinstance(w, Button)]
+    for widget in focusables(hidden.root):
+        widget.focus(False)
+    save.focus(True)
+    assert hidden.handle(Event(ACTIVATE)) is True
+    assert '"header_visible": true' in config_path.read_text(encoding="utf-8")
+    assert any("hello from myapp!" in line for line in Compositor().text(hidden))
+
     again_engine = Engine()
     again = module.build(again_engine)
     assert _find_all(again.root, HeaderEditor) == []
