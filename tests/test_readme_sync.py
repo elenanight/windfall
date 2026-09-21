@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from scripts.update_readme import (
     BADGES_END,
     BADGES_START,
+    DEFAULT_SLUG,
     build_badges,
     project_version,
+    repo_slug,
     sync_init_version,
     update_readme,
 )
@@ -41,6 +45,38 @@ def test_build_badges_embeds_version_and_slug() -> None:
     assert "github/last-commit/elenanight/windfall" in block
     assert block.startswith(BADGES_START)
     assert block.endswith(BADGES_END)
+
+
+def test_repo_slug_accepts_github_remotes(monkeypatch: pytest.MonkeyPatch) -> None:
+    import subprocess
+
+    for url, expected in [
+        ("https://github.com/elenanight/windfall.git", "elenanight/windfall"),
+        ("https://github.com/elenanight/windfall", "elenanight/windfall"),
+        ("git@github.com:elenanight/windfall.git", "elenanight/windfall"),
+    ]:
+        monkeypatch.setattr(
+            subprocess,
+            "run",
+            lambda *a, _url=url, **k: SimpleNamespace(stdout=_url),
+        )
+        assert repo_slug() == expected
+
+
+def test_repo_slug_rejects_non_github_remotes(monkeypatch: pytest.MonkeyPatch) -> None:
+    import subprocess
+
+    cases = [
+        "https://github.com.evil.com/elenanight/windfall.git",
+        "https://gitlab.com/elenanight/windfall.git",
+        "https://github.com/onlyowner",
+        "not a url at all",
+    ]
+    for url in cases:
+        monkeypatch.setattr(
+            subprocess, "run", lambda *a, _url=url, **k: SimpleNamespace(stdout=_url)
+        )
+        assert repo_slug() == DEFAULT_SLUG
 
 
 def test_update_readme_replaces_version_badge(tmp_path) -> None:
