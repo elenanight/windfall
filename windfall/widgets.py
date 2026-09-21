@@ -366,7 +366,7 @@ class HeaderEditor(Panel):
         body.add(Label("Header text:"))
         body.add(self._field)
         body.add(Connector("available"))
-        halves = Row()
+        halves = Row(fill=True)
         left = Column()
         left.add(Label("Border:"))
         left.add(self._borders)
@@ -425,7 +425,7 @@ class FooterEditor(Panel):
         body.add(Label("Footer text:"))
         body.add(self._field)
         body.add(Connector("available"))
-        halves = Row()
+        halves = Row(fill=True)
         left = Column()
         left.add(Label("Border:"))
         left.add(self._borders)
@@ -484,14 +484,18 @@ class Hotkey(Component):
 
 WIDGET_KINDS = ("Label", "Button", "TextInput", "ListView", "Divider")
 PLACEMENTS = ("left", "center", "right", "full", "sidebar")
+STRETCH = ("No", "Yes")
 
 
 class AddWidget(Panel):
     """Palette panel for dropping a widget into the content section.
 
-    Offers a curated widget list plus a placement list (left, center,
-    right, full width, or sidebar). ``on_add`` receives
-    ``(kind, placement)``; ``on_cancel`` takes no arguments.
+    Offers a curated widget list, a placement list (left, center, right,
+    full width, or sidebar), and a stretch option. ``on_add`` receives
+    ``(kind, placement, stretch)``; ``on_cancel`` takes no arguments.
+    ``fits`` optionally validates ``(kind, placement, stretch)`` and
+    returns a refusal reason (or ``None``); on refusal the palette stays
+    open showing the reason in its status line.
     """
 
     def __init__(
@@ -499,32 +503,56 @@ class AddWidget(Panel):
         *,
         on_add=None,
         on_cancel=None,
+        fits=None,
         title: str = "Add widget",
     ) -> None:
         self._kinds = list(WIDGET_KINDS)
         self._placements = list(PLACEMENTS)
+        self._stretch_choices = list(STRETCH)
         self.on_add = on_add
         self.on_cancel = on_cancel
-        self._types = ListView(items=self._kinds)
-        self._places = ListView(items=self._placements)
+        self._fits = fits
+        self._status = Label("")
+        kind_shown, place_shown, stretch_shown = _pad_equal(
+            self._kinds, self._placements, self._stretch_choices
+        )
+        self._types = ListView(items=kind_shown)
+        self._places = ListView(items=place_shown)
+        self._stretch = ListView(items=stretch_shown)
+        halves = Row(fill=True)
+        left = Column()
+        left.add(Label("Widget:"))
+        left.add(self._types)
+        middle = Column()
+        middle.add(Label("Placement:"))
+        middle.add(self._places)
+        right = Column()
+        right.add(Label("Stretch:"))
+        right.add(self._stretch)
+        halves.add(left)
+        halves.add(middle)
+        halves.add(right)
         body = Column()
-        body.add(Label("Widget:"))
-        body.add(self._types)
-        body.add(Connector("available"))
-        body.add(Label("Placement:"))
-        body.add(self._places)
+        body.add(halves)
         body.add(Connector("available"))
         actions = Row()
         actions.add(Button("Add", on_activate=self._commit))
         actions.add(Button("Cancel", on_activate=self._abort))
         body.add(actions)
+        body.add(self._status)
         super().__init__(body, title=title, padding=1)
 
     def _commit(self) -> None:
         kind = self._kinds[self._types.selection]
         placement = self._placements[self._places.selection]
+        stretch = self._stretch.selection == 1
+        if self._fits is not None:
+            reason = self._fits(kind, placement, stretch)
+            if reason:
+                self._status.set_text(reason)
+                return
         if self.on_add is not None:
-            self.on_add(kind, placement)
+            self.on_add(kind, placement, stretch)
 
     def _abort(self) -> None:
         if self.on_cancel is not None:

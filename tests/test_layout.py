@@ -60,6 +60,34 @@ def test_row_draw_places_left_to_right() -> None:
     assert canvas.text() == ["aabb"]
 
 
+def test_row_fill_shares_extra_width_equally() -> None:
+    row = Row(fill=True)
+    row.add(Text("aa"))
+    row.add(Text("bb"))
+    assert row.size() == Vec2(4, 1)  # measuring stays natural
+    canvas = Canvas(10, 1)
+    row.draw(canvas, Rect(0, 0, 10, 1))
+    assert canvas.text() == ["aa   bb   "]
+
+
+def test_row_fill_splits_remainder_left_to_right() -> None:
+    row = Row(fill=True)
+    row.add(Text("aa"))
+    row.add(Text("bb"))
+    canvas = Canvas(9, 1)
+    row.draw(canvas, Rect(0, 0, 9, 1))
+    assert canvas.text() == ["aa   bb  "]
+
+
+def test_row_fill_keeps_natural_widths_when_cramped() -> None:
+    row = Row(fill=True)
+    row.add(Text("aa"))
+    row.add(Text("bb"))
+    canvas = Canvas(3, 1)
+    row.draw(canvas, Rect(0, 0, 3, 1))
+    assert canvas.text() == ["aab"]
+
+
 def test_stack_size_uses_max_dimensions() -> None:
     stack = Stack()
     stack.add(Text("aa"))
