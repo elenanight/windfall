@@ -103,6 +103,7 @@ class Button(Component):
     ) -> None:
         super().__init__()
         self.focusable = True
+        self._text = label
         self._label = Text(label, align="center", style=style)
         self._border = Border(border_style)
         self._style = style
@@ -119,7 +120,12 @@ class Button(Component):
         if self.focused and inner.width > 0 and inner.height > 0:
             canvas.fill(rect.x, rect.y, rect.width, rect.height, " ", _HIGHLIGHT)
         if inner.width > 0 and inner.height > 0:
-            self._label.draw(canvas, inner)
+            if self.focused:
+                base = self._style if self._style is not None else Style()
+                text_style = base.merge(_HIGHLIGHT)
+            else:
+                text_style = self._style
+            Text(self._text, align="center", style=text_style).draw(canvas, inner)
         self._border.draw(canvas, rect)
 
     def handle(self, event: Event) -> bool:
@@ -130,6 +136,7 @@ class Button(Component):
         return True
 
     def set_label(self, label: str) -> None:
+        self._text = label
         self._label = Text(label, align="center", style=self._style)
 
 
@@ -188,10 +195,14 @@ class TextInput(Component):
             return
         if self.focused:
             canvas.fill(inner.x, inner.y, inner.width, inner.height, " ", _HIGHLIGHT)
-        canvas.write(self._text[: inner.width], inner.x, inner.y, self._style)
+            base = self._style if self._style is not None else Style()
+            text_style = base.merge(_HIGHLIGHT)
+        else:
+            text_style = self._style
+        canvas.write(self._text[: inner.width], inner.x, inner.y, text_style)
         if self.focused and inner.width > 0:
             cursor_column = min(self._cursor, inner.width - 1)
-            canvas.write(_BLOCK, inner.x + cursor_column, inner.y, self._style)
+            canvas.write(_BLOCK, inner.x + cursor_column, inner.y, text_style)
 
     def handle(self, event: Event) -> bool:
         if not self.focused:

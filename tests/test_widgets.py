@@ -93,6 +93,14 @@ class TestButton:
             "└──┘",
         ]
 
+    def test_focused_label_carries_highlight(self) -> None:
+        button = Button("OK", padding=0)
+        button.focus(True)
+        canvas = Canvas(4, 3)
+        button.draw(canvas, Rect(0, 0, 4, 3))
+        spans = canvas.to_rich().spans
+        assert any(span.style is not None and span.style.bgcolor for span in spans)
+
 
 class TestPanel:
     def test_size_wraps_child(self) -> None:
@@ -158,6 +166,14 @@ class TestTextInput:
         field.handle(move("left"))
         field.handle(move("left"))
         assert render(field) == ["┌──┐", "│▮i│", "└──┘"]
+
+    def test_focused_text_carries_highlight(self) -> None:
+        field = TextInput("hi")
+        field.focus(True)
+        canvas = Canvas(4, 3)
+        field.draw(canvas, Rect(0, 0, 4, 3))
+        spans = canvas.to_rich().spans
+        assert any(span.style is not None and span.style.bgcolor for span in spans)
 
 
 class TestListView:
