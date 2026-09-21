@@ -18,6 +18,7 @@ from windfall.anim import (
 from windfall.canvas import Canvas
 from windfall.component import Component
 from windfall.compositor import Compositor
+from windfall.config import Config
 from windfall.engine import Engine
 from windfall.events import (
     ACTIVATE,
@@ -38,9 +39,9 @@ from windfall.layout import Center, Column, Container, Row, Stack
 from windfall.primitives import Border, Box, Divider, Primitive, Spacer, Text
 from windfall.scene import Frame, FrameStack, Scene
 from windfall.style import Style, Theme
-from windfall.widgets import Button, Label, ListView, Panel, TextInput
+from windfall.widgets import Button, Header, HeaderEditor, Label, ListView, Panel, TextInput
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "ACTIVATE",
@@ -62,6 +63,7 @@ __all__ = [
     "Column",
     "Component",
     "Compositor",
+    "Config",
     "Container",
     "Divider",
     "Engine",
@@ -69,6 +71,8 @@ __all__ = [
     "EventQueue",
     "Frame",
     "FrameStack",
+    "Header",
+    "HeaderEditor",
     "InputReader",
     "Keymap",
     "Label",

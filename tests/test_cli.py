@@ -172,3 +172,51 @@ def test_alias_examples_lists(capsys) -> None:
 def test_help_subcommand(capsys) -> None:
     assert cli.main(["help"]) == 0
     assert "windfall" in capsys.readouterr().out
+
+
+def _find_all(node, kind: type) -> list:
+    """Walk a component tree the way event delivery does (children/box/child)."""
+    found = [node] if isinstance(node, kind) else []
+    for attr in ("children", "_box", "_child"):
+        value = getattr(node, attr, None)
+        if value is None:
+            continue
+        for kid in value if isinstance(value, list) else [value]:
+            found.extend(_find_all(kid, kind))
+    return found
+
+
+def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
+    import importlib.util
+
+    from windfall import Compositor, Engine
+    from windfall.events import ACTIVATE, Event
+    from windfall.scene import focusables
+    from windfall.widgets import Button, HeaderEditor
+
+    base = tmp_path / "work"
+    assert cli.main(["new", "myapp", "--dest", str(base)]) == 0
+    app_path = base / "project" / "myapp" / "app.py"
+    spec = importlib.util.spec_from_file_location("scaffolded_myapp", app_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    scene = module.build(Engine())
+    assert scene.name == "myapp"
+    editors = _find_all(scene.root, HeaderEditor)
+    assert len(editors) == 1  # first run opens the editor in place
+
+    save, _ = [w for w in focusables(editors[0]) if isinstance(w, Button)]
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    save.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+    config_path = base / "project" / "myapp" / ".windfallrc.json"
+    assert config_path.is_file()
+    assert "hello from myapp!" in config_path.read_text(encoding="utf-8")
+    assert _find_all(scene.root, HeaderEditor) == []
+
+    again = module.build(Engine())
+    assert _find_all(again.root, HeaderEditor) == []
+    assert any("hello from myapp!" in line for line in Compositor().text(again))

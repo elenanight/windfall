@@ -8,3 +8,5 @@ dist/
 build/
 .coverage
 htmlcov/
+# Scaffolded test apps land under <base>/project/<name>.
+/project/

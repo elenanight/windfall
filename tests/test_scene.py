@@ -152,6 +152,41 @@ class TestScene:
         scene = Scene()
         assert scene.handle(Event(KEY, {"key": "z"})) is False
 
+    def test_focus_scope_traps_arrow_cycling_inside_editor(self) -> None:
+        background = Button("App", padding=0)
+        save = Button("Save", padding=0)
+        cancel = Button("Cancel", padding=0)
+        editor = Panel(Column().add(save).add(cancel), title="Header")
+        scene = Scene(root=Column().add(background).add(editor))
+
+        scene.handle(move("down"))
+        assert background.focused is True
+
+        scene.set_focus_scope(editor)
+        assert background.focused is False
+        assert save.focused is True
+
+        scene.handle(move("down"))
+        assert save.focused is False
+        assert cancel.focused is True
+        scene.handle(move("down"))
+        assert save.focused is True
+        assert background.focused is False
+
+    def test_clear_focus_scope_restores_previous_focus(self) -> None:
+        background = Button("App", padding=0)
+        save = Button("Save", padding=0)
+        editor = Panel(Column().add(save), title="Header")
+        scene = Scene(root=Column().add(background).add(editor))
+
+        scene.handle(move("down"))
+        scene.set_focus_scope(editor)
+        assert save.focused is True
+
+        scene.clear_focus_scope()
+        assert save.focused is False
+        assert background.focused is True
+
 
 class TestFrameStack:
     def test_frame_uses_scene_name(self) -> None:

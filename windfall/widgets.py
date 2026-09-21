@@ -5,6 +5,7 @@ from __future__ import annotations
 from windfall.component import Component
 from windfall.events import ACTIVATE, KEY, MOVE, Event
 from windfall.geom import Rect, Vec2
+from windfall.layout import Column, Row
 from windfall.primitives import Border, Box, Text
 from windfall.style import Style
 
@@ -27,6 +28,36 @@ class Label(Component):
 
     def set_text(self, text: str) -> None:
         self._text.set_text(text)
+
+
+class Header(Component):
+    """A full-width bar assembled from a bordered box and a styled label."""
+
+    def __init__(self, text: str = "", *, border: str | None = "cyan", fg: str | None = "white") -> None:
+        super().__init__()
+        self._text = text
+        self._border = border
+        self._fg = fg
+        self._label = Label(text, style=Style(fg=fg), align="center")
+        self._box = Box(self._label, border_style=Style(fg=border), padding=0)
+
+    def size(self) -> Vec2:
+        return self._box.size()
+
+    def draw(self, canvas, rect: Rect) -> None:
+        self._box.draw(canvas, rect)
+
+    def set_text(self, text: str) -> None:
+        self._text = text
+        self._label.set_text(text)
+
+    def set_colors(self, *, border: str | None = None, fg: str | None = None) -> None:
+        if border is not None:
+            self._border = border
+        if fg is not None:
+            self._fg = fg
+        self._label = Label(self._text, style=Style(fg=self._fg), align="center")
+        self._box = Box(self._label, border_style=Style(fg=self._border), padding=0)
 
 
 class Button(Component):
@@ -222,6 +253,87 @@ class ListView(Component):
         self._items = list(items or [])
         self._selected = 0
 
+    def select(self, index: int) -> None:
+        if not self._items:
+            return
+        self._selected = max(0, min(index, len(self._items) - 1))
+
     @property
     def selection(self) -> int:
         return self._selected
+
+
+BORDER_COLORS = ("cyan", "blue", "magenta", "green", "yellow", "red", "white")
+TEXT_COLORS = (
+    "bright_white",
+    "white",
+    "bright_cyan",
+    "bright_yellow",
+    "bright_green",
+    "bright_magenta",
+    "yellow",
+)
+
+
+def _index_of(choices: list[str], value: str | None) -> int:
+    try:
+        return choices.index(value)
+    except ValueError:
+        return 0
+
+
+class HeaderEditor(Panel):
+    """In-place editor panel for header text and colors.
+
+    A ``Panel`` subclass wrapping a ``TextInput``, two curated-color
+    ``ListView``s, and Save/Cancel buttons. ``on_save`` receives
+    ``(text, border, fg)``; ``on_cancel`` takes no arguments. Lists
+    preselect the given values. Events reach the nested widgets through
+    the inherited panel/box traversal.
+    """
+
+    def __init__(
+        self,
+        *,
+        text: str = "",
+        border: str = "cyan",
+        fg: str = "white",
+        border_choices=None,
+        text_choices=None,
+        on_save=None,
+        on_cancel=None,
+        title: str = "Edit header bar",
+    ) -> None:
+        self._text = text
+        self._border_choices = list(border_choices or BORDER_COLORS)
+        self._text_choices = list(text_choices or TEXT_COLORS)
+        self.on_save = on_save
+        self.on_cancel = on_cancel
+        self._field = TextInput(text)
+        self._borders = ListView(items=self._border_choices)
+        self._borders.select(_index_of(self._border_choices, border))
+        self._fgs = ListView(items=self._text_choices)
+        self._fgs.select(_index_of(self._text_choices, fg))
+        body = Column()
+        body.add(Label("Header text:"))
+        body.add(self._field)
+        body.add(Label("Border color:"))
+        body.add(self._borders)
+        body.add(Label("Text color:"))
+        body.add(self._fgs)
+        actions = Row()
+        actions.add(Button("Save", on_activate=self._commit))
+        actions.add(Button("Cancel", on_activate=self._abort))
+        body.add(actions)
+        super().__init__(body, title=title, padding=1)
+
+    def _commit(self) -> None:
+        text = self._field.value.strip() or self._text
+        border = self._border_choices[self._borders.selection]
+        fg = self._text_choices[self._fgs.selection]
+        if self.on_save is not None:
+            self.on_save(text, border, fg)
+
+    def _abort(self) -> None:
+        if self.on_cancel is not None:
+            self.on_cancel()

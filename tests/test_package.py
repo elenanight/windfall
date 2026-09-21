@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import importlib.metadata
+
 import windfall
 
 
 def test_version_exposed() -> None:
-    assert windfall.__version__ == "0.1.0"
+    assert windfall.__version__ == importlib.metadata.version("windfall")
 
 
 def test_cli_entry_point_imports() -> None:

@@ -5,7 +5,19 @@ from __future__ import annotations
 from windfall.canvas import Canvas
 from windfall.events import ACTIVATE, KEY, MOVE, Event
 from windfall.geom import Rect, Vec2
-from windfall.widgets import Button, Label, ListView, Panel, TextInput
+from windfall.layout import Column
+from windfall.scene import Scene, focusables
+from windfall.widgets import (
+    BORDER_COLORS,
+    TEXT_COLORS,
+    Button,
+    Header,
+    HeaderEditor,
+    Label,
+    ListView,
+    Panel,
+    TextInput,
+)
 
 
 def render(widget, width: int | None = None, height: int | None = None) -> list[str]:
@@ -185,6 +197,14 @@ class TestListView:
         assert view.selection == 0
         assert view.size() == Vec2(3, 1)
 
+    def test_select_clamps_and_ignores_empty(self) -> None:
+        view = ListView(items=["a", "b"])
+        view.select(9)
+        assert view.selection == 1
+        view.select(-4)
+        assert view.selection == 0
+        ListView().select(3)  # no items: no crash
+
     def test_draw_marks_selection(self) -> None:
         view = ListView(items=["Alpha", "Beta", "Gamma"])
         view.focus(True)
@@ -196,3 +216,112 @@ class TestListView:
         canvas = Canvas(7, 2)
         view.draw(canvas, Rect(0, 0, 7, 2))
         assert canvas.to_rich().spans
+
+
+class TestHeader:
+    def test_not_focusable(self) -> None:
+        assert Header("hi").focusable is False
+
+    def test_size_wraps_label(self) -> None:
+        assert Header("hi").size() == Vec2(4, 3)
+
+    def test_draw_frames_centered_label(self) -> None:
+        assert render(Header("hi")) == [
+            "┌──┐",
+            "│hi│",
+            "└──┘",
+        ]
+
+    def test_set_text_updates(self) -> None:
+        header = Header("aa")
+        header.set_text("b")
+        assert header.size() == Vec2(3, 3)
+        assert render(header) == [
+            "┌─┐",
+            "│b│",
+            "└─┘",
+        ]
+
+    def test_set_colors_keeps_text(self) -> None:
+        header = Header("hi", border="red", fg="green")
+        header.set_colors(border="blue", fg="yellow")
+        assert render(header) == [
+            "┌──┐",
+            "│hi│",
+            "└──┘",
+        ]
+
+
+def _editor_buttons(editor: HeaderEditor) -> list[Button]:
+    return [w for w in focusables(editor) if isinstance(w, Button)]
+
+
+def _hosted(editor: HeaderEditor) -> Scene:
+    return Scene(root=Column().add(editor))
+
+
+class TestHeaderEditor:
+    def test_preselects_given_colors(self) -> None:
+        editor = HeaderEditor(text="Hi", border="red", fg="bright_green")
+        views = [w for w in focusables(editor) if isinstance(w, ListView)]
+        assert views[0].selection == BORDER_COLORS.index("red")
+        assert views[1].selection == TEXT_COLORS.index("bright_green")
+
+    def test_save_delivers_text_and_colors(self) -> None:
+        saved: list[tuple] = []
+        editor = HeaderEditor(
+            text="Hi",
+            border="red",
+            fg="bright_green",
+            on_save=lambda text, border, fg: saved.append((text, border, fg)),
+        )
+        save, _ = _editor_buttons(editor)
+        save.focus(True)
+        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert saved == [("Hi", "red", "bright_green")]
+
+    def test_save_follows_moved_selection(self) -> None:
+        saved: list[tuple] = []
+        editor = HeaderEditor(
+            text="Hi",
+            border="red",
+            fg="bright_green",
+            on_save=lambda text, border, fg: saved.append((text, border, fg)),
+        )
+        views = [w for w in focusables(editor) if isinstance(w, ListView)]
+        views[0].focus(True)
+        views[0].handle(move("down"))
+        views[0].focus(False)
+        save, _ = _editor_buttons(editor)
+        save.focus(True)
+        _hosted(editor).handle(Event(ACTIVATE))
+        assert saved[0][1] == BORDER_COLORS[BORDER_COLORS.index("red") + 1]
+
+    def test_cancel_calls_on_cancel_only(self) -> None:
+        saved: list[tuple] = []
+        cancelled: list[bool] = []
+        editor = HeaderEditor(
+            text="Hi",
+            on_save=lambda text, border, fg: saved.append((text, border, fg)),
+            on_cancel=lambda: cancelled.append(True),
+        )
+        _, cancel = _editor_buttons(editor)
+        cancel.focus(True)
+        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert cancelled == [True]
+        assert saved == []
+
+    def test_empty_text_falls_back_to_initial(self) -> None:
+        saved: list[tuple] = []
+        editor = HeaderEditor(
+            text="Hi", on_save=lambda text, border, fg: saved.append((text, border, fg))
+        )
+        fields = [w for w in focusables(editor) if isinstance(w, TextInput)]
+        fields[0].focus(True)
+        fields[0].handle(key("\x7f"))
+        fields[0].handle(key("\x7f"))
+        fields[0].focus(False)
+        save, _ = _editor_buttons(editor)
+        save.focus(True)
+        _hosted(editor).handle(Event(ACTIVATE))
+        assert saved[0][0] == "Hi"

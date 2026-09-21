@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - None yet.
 
+## [0.2.0] - 2026-09-21
+
+### Added
+
+- In-place header editor: `HeaderEditor` panel (`TextInput` + curated-color
+  `ListView`s + Save/Cancel) assembled from primitives and widgets.
+- `Header` widget and `Engine.make_header()` assembling a header bar from a
+  bordered box and a styled label.
+- `Config` JSON store so apps persist user settings with defaults fallback.
+- `Scene` focus scopes (`set_focus_scope`/`clear_focus_scope`) trapping
+  arrow-key focus inside an open editor panel and restoring prior focus.
+- Scaffolded apps open the header editor on first run and keep an
+  “Edit header bar” button for later re-edits, persisting to
+  `.windfallrc.json`.
+
+### Changed
+
+- Method budget relaxed from the rule of seven to the rule of ten
+  (10 methods max excluding `__init__`; warnings at 9-10).
+
 ## [0.1.0] - 2026-09-20
 
 ### Added

@@ -9,7 +9,7 @@ from windfall.engine import Engine
 from windfall.events import ACTIVATE, QUIT, Event
 from windfall.input import InputReader
 from windfall.scene import Scene
-from windfall.widgets import Button, TextInput
+from windfall.widgets import Button, Header, TextInput
 
 
 class FakeLive:
@@ -113,3 +113,10 @@ def test_run_typing_reaches_focused_text_input(monkeypatch: pytest.MonkeyPatch) 
     engine.use_scene(Scene(name="chat", root=field))
     engine.run(fps=200)
     assert field.value == "z"
+
+
+def test_make_header_assembles_widget_from_primitives() -> None:
+    engine = Engine()
+    header = engine.make_header("hi", border="red", fg="green")
+    assert isinstance(header, Header)
+    assert header.size() == Header("hi").size()

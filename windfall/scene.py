@@ -38,6 +38,8 @@ class Scene:
         self.name = name
         self.root = root
         self.timeline = Timeline()
+        self._focus_scope = None
+        self._saved_focus = None
 
     def size(self) -> Vec2:
         return self.root.size() if self.root is not None else Vec2(0, 0)
@@ -65,7 +67,8 @@ class Scene:
         return False
 
     def focus_next(self, step: int = 1) -> None:
-        items = list(focusables(self.root)) if self.root is not None else []
+        root = self._focus_scope if self._focus_scope is not None else self.root
+        items = list(focusables(root)) if root is not None else []
         if not items:
             return
         focused_index = next((i for i, item in enumerate(items) if item.focused), None)
@@ -74,6 +77,36 @@ class Scene:
             return
         items[focused_index].focus(False)
         items[(focused_index + step) % len(items)].focus(True)
+
+    def set_focus_scope(self, node) -> None:
+        """Trap arrow-key focus inside ``node`` until the scope is cleared.
+
+        Opening an in-place editor calls this with the editor panel; closing
+        it calls :meth:`clear_focus_scope`, which restores the previously
+        focused widget when it still exists.
+        """
+        if node is None:
+            self.clear_focus_scope()
+            return
+        current = next((item for item in focusables(self.root) if item.focused), None)
+        self._saved_focus = current
+        for item in focusables(self.root):
+            item.focus(False)
+        self._focus_scope = node
+        scoped = list(focusables(node))
+        if scoped:
+            scoped[0].focus(True)
+
+    def clear_focus_scope(self) -> None:
+        """Release a focus scope and restore the previously focused widget."""
+        scope = self._focus_scope
+        self._focus_scope = None
+        if scope is not None:
+            for item in focusables(scope):
+                item.focus(False)
+        saved, self._saved_focus = self._saved_focus, None
+        if saved is not None:
+            saved.focus(True)
 
 
 class Frame:

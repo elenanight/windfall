@@ -13,6 +13,7 @@ from windfall.events import QUIT, Event, EventQueue
 from windfall.input import InputReader, Keymap
 from windfall.scene import Frame, FrameStack
 from windfall.terminal import RawTerminal
+from windfall.widgets import Header
 
 
 class Engine:
@@ -40,6 +41,10 @@ class Engine:
 
     def use_scene(self, scene) -> None:
         self.frames.push(Frame(scene))
+
+    def make_header(self, text: str = "", *, border: str = "cyan", fg: str = "white") -> Header:
+        """Assemble a header bar from primitives with the given colors."""
+        return Header(text, border=border, fg=fg)
 
     def post_event(self, event: Event) -> None:
         self._queue.post(event)
