@@ -4,6 +4,7 @@ from pathlib import Path
 
 from windfall import (
     Button,
+    Center,
     Column,
     Config,
     Connector,
@@ -52,7 +53,9 @@ def build(engine: Engine) -> Scene:
     actions.add(edit_footer)
     actions.add(Connector("available", horizontal=True))
     actions.add(quit)
-    body.add(actions)
+    actions_center = Center()
+    actions_center.add(actions)
+    body.add(actions_center)
     body.add(Label("A add · E edit · Q quit · arrows move · Enter activate", align="center"))
     dialog = Panel(body, title="@@title@@", padding=0)
     content_body = Column()
