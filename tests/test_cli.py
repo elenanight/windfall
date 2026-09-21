@@ -233,6 +233,8 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert scene.handle(Event(ACTIVATE)) is True
     editors = _find_all(scene.root, HeaderEditor)
     assert len(editors) == 1  # menu opens the editor in place
+    main = scene.root.children[0]
+    assert main.children[1] is editors[0]  # resting under the menu, above the header
     assert _find_all(scene.root, Hotkey) == []  # hotkey parked while editing
 
     fields = [w for w in focusables(editors[0]) if isinstance(w, TextInput)]

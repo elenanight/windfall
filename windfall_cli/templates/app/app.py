@@ -122,18 +122,17 @@ def build(engine: Engine) -> Scene:
                 on_save=save_header,
                 on_cancel=close_editor,
             )
-        # Left-docked overlay: the row draws the editor at the left edge
-        # while the app body shows through on the right.
-        layer = Row()
-        layer.add(editor)
-        root.add(layer)
+        # Rest inline under the menu and above the header; the layout
+        # reflows around it until save/cancel takes it away.
+        layer = editor
+        main.children.insert(1, editor)
         scene.set_focus_scope(editor)
 
     def close_editor() -> None:
         nonlocal layer
         if layer is None:
             return
-        root.remove(layer)
+        main.remove(layer)
         layer = None
         for hotkey in hotkeys:
             root.add(hotkey)
