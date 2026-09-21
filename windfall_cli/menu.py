@@ -14,7 +14,7 @@ import termios
 import time
 from pathlib import Path
 
-from windfall import Button, Column, Engine, Label, ListView, Panel, Row, Scene, TextInput
+from windfall import Button, Column, Engine, Hotkey, Label, ListView, Panel, Row, Scene, TextInput
 from windfall.primitives import Box
 from windfall.scene import focusables
 from windfall.style import Style
@@ -60,6 +60,7 @@ def build_menu(engine: Engine, base=None) -> Scene:
     main.add(status)
     main.add(view)
     main.add(actions)
+    main.add(Label("N new · O open · D delete · A archive · X quit · arrows move · Enter activate", align="center"))
     info = Column()
     info.add(Label(f"Windfall {__version__}", align="center"))
     info_count = Label("", align="center")
@@ -263,6 +264,17 @@ def build_menu(engine: Engine, base=None) -> Scene:
     quit_btn = Button("Quit", on_activate=engine.stop)
     action_buttons = [new_btn, open_btn, delete_btn, archive_btn, quit_btn]
     restore_actions()
+
+    def focus_button(target) -> None:
+        for widget in focusables(scene.root):
+            widget.focus(False)
+        target.focus(True)
+
+    root.add(Hotkey("n", on_press=lambda: focus_button(new_btn)))
+    root.add(Hotkey("o", on_press=lambda: focus_button(open_btn)))
+    root.add(Hotkey("d", on_press=lambda: focus_button(delete_btn)))
+    root.add(Hotkey("a", on_press=lambda: focus_button(archive_btn)))
+    root.add(Hotkey("x", on_press=engine.stop))
     return scene
 
 
