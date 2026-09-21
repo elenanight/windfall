@@ -28,7 +28,6 @@ BADGES_END = "<!-- badges:end -->"
 
 DEFAULT_SLUG = "elenanight/windfall"
 REPO_URL = "https://github.com/elenanight/windfall"
-LICENSE_URL = REPO_URL + "/blob/main/LICENSE"
 CHANGELOG_URL = REPO_URL + "/blob/main/CHANGELOG.md"
 ACTIONS_URL = REPO_URL + "/actions"
 DEPENDABOT_URL = REPO_URL + "/security/dependabot"
@@ -50,8 +49,7 @@ def build_badges(slug: str, version: str) -> str:
         f"[![version](https://img.shields.io/badge/version-{version}-blue)]({REPO_URL})",
         f"[![stable](https://img.shields.io/github/actions/workflow/status/{slug}/ci.yml?branch=main&label=stable)]({ACTIONS_URL})",
         f"[![dev](https://img.shields.io/github/actions/workflow/status/{slug}/ci.yml?branch=dev&label=dev)]({ACTIONS_URL})",
-        f"[![license](https://img.shields.io/badge/license-MIT-green)]({LICENSE_URL})",
-        f"[![changelog](https://img.shields.io/static/v1?label=&message=changelog&color=orange)]({CHANGELOG_URL})",
+        f"[![changelog](https://img.shields.io/badge/latest-changelog-orange)]({CHANGELOG_URL})",
     ]
     second = [
         f"[![python](https://img.shields.io/badge/python-3.14-3776AB)]({REPO_URL})",
