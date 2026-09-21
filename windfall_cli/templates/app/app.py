@@ -71,7 +71,7 @@ def build(engine: Engine) -> Scene:
     actions_center = Center()
     actions_center.add(actions)
     body.add(actions_center)
-    body.add(Label("A add · E edit · R remove · Q back · arrows move · Enter activate", align="center"))
+    body.add(Label("W add · E edit · R remove · Q back · arrows move · Enter activate", align="center"))
     dialog = Panel(body, title="@@title@@", padding=0)
     content_main = Column()
     content_main.add(Label("Build your app here.", align="center"))
@@ -102,7 +102,7 @@ def build(engine: Engine) -> Scene:
         focus_widget(edit)
 
     hotkeys = [
-        Hotkey("a", on_press=lambda: focus_widget(add)),
+        Hotkey("w", on_press=lambda: focus_widget(add)),
         Hotkey("e", on_press=focus_first_action),
         Hotkey("r", on_press=lambda: focus_widget(remove)),
         Hotkey("q", on_press=engine.stop),
