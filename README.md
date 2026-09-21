@@ -4,8 +4,7 @@
 [![version](https://img.shields.io/badge/version-0.2.4-blue)](https://github.com/elenanight/windfall)
 [![stable](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=main&label=stable)](https://github.com/elenanight/windfall/actions)
 [![dev](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=dev&label=dev)](https://github.com/elenanight/windfall/actions)
-[![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/elenanight/windfall/blob/main/LICENSE)
-[![changelog](https://img.shields.io/static/v1?label=&message=changelog&color=orange)](https://github.com/elenanight/windfall/blob/main/CHANGELOG.md)
+[![changelog](https://img.shields.io/badge/latest-changelog-orange)](https://github.com/elenanight/windfall/blob/main/CHANGELOG.md)
 
 [![python](https://img.shields.io/badge/python-3.14-3776AB)](https://github.com/elenanight/windfall)
 [![dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-green)](https://github.com/elenanight/windfall/security/dependabot)
