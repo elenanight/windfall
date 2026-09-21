@@ -11,6 +11,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - None yet.
 
+## [0.2.2] - 2026-09-21
+
+### Added
+
+- Footer bar mirroring the header: `Footer` widget, `FooterEditor` panel,
+  `Engine.make_footer()`, and footer keys in the scaffold config.
+- `Hotkey` widget with `A`/`E`/`Q` menu shortcuts in scaffolded apps.
+- State-colored `Connector` shafts (`available`/`unavailable`/`unlockable`/
+  `active`) linking menu boxes and editor fields.
+- Content body section in the scaffolded app template.
+- Horizontal `align` option on the `Center` layout.
+
+### Changed
+
+- Scaffolded apps open header/footer editors from the menu instead of on
+  first run.
+- App menu moved above the header bar with compact spacing; editors stay
+  left-docked.
+- Focused button and text-input text paints with the highlight background
+  so focus stays visible at any padding.
+
 ## [0.2.1] - 2026-09-21
 
 ### Added
