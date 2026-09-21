@@ -56,7 +56,7 @@ compose freely:
 ## CLI
 
 ```
-windfall new NAME [--template app] [--dest DIR]   scaffold an app into DIR/project/NAME (default: ./project/NAME)
+windfall new NAME [--template app] [--dest DIR] [--yes]   scaffold into DIR/project/NAME; asks to run it on a terminal (--yes skips that)
 windfall run [app.py]                             run a file (default: the demo)
 windfall demo [--headless] [--ticks N]            run the built-in demo
 windfall example NAME [--headless] [--ticks N]    run a bundled example (menu/bouncer/snake)

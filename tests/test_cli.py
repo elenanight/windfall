@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from windfall_cli import cli
+
+
+def _stub_run(monkeypatch: pytest.MonkeyPatch, calls: list) -> None:
+    def fake_run(*args, **kwargs):
+        calls.append((args, kwargs))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(cli, "subprocess", SimpleNamespace(run=fake_run))
 
 
 def test_missing_command_prints_help(capsys) -> None:
@@ -169,6 +179,42 @@ def test_alias_examples_lists(capsys) -> None:
     assert "snake" in out
 
 
+def test_new_yes_flag_runs_app_without_prompt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list = []
+    _stub_run(monkeypatch, calls)
+    base = tmp_path / "yes"
+    assert cli.main(["new", "myapp", "--dest", str(base), "--yes"]) == 0
+    assert len(calls) == 1
+    (args, kwargs) = calls[0]
+    assert args[0] == ["uv", "run", "python", "app.py"]
+    assert kwargs["cwd"] == base / "project" / "myapp"
+
+
+def test_new_prompts_and_runs_on_yes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    calls: list = []
+    prompts: list = []
+    _stub_run(monkeypatch, calls)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt: prompts.append(prompt) or "y")
+    base = tmp_path / "prompt"
+    assert cli.main(["new", "myapp", "--dest", str(base)]) == 0
+    assert prompts == ["Run 'myapp' now? [y/N]: "]
+    assert "Starting myapp ..." in capsys.readouterr().out
+    assert len(calls) == 1
+
+
+def test_new_prompts_and_skips_on_no(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list = []
+    _stub_run(monkeypatch, calls)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda _: "n")
+    base = tmp_path / "skip"
+    assert cli.main(["new", "myapp", "--dest", str(base)]) == 0
+    assert calls == []
+
+
 def test_help_subcommand(capsys) -> None:
     assert cli.main(["help"]) == 0
     assert "windfall" in capsys.readouterr().out
@@ -210,6 +256,11 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+
+    home = module.windfall_home()
+    assert home is not None
+    assert (home / "pyproject.toml").is_file()
+    assert (home / "windfall" / "__init__.py").is_file()
 
     engine = Engine()
     scene = module.build(engine)

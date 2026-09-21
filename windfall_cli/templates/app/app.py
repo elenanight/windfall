@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import windfall
 from windfall import (
     AddWidget,
     Button,
@@ -33,6 +34,15 @@ DEFAULTS = {
     "footer_fg": "white",
     "widgets": [],
 }
+
+
+def windfall_home() -> Path | None:
+    """Locate the Windfall checkout backing this app, if it runs from one."""
+    init = getattr(windfall, "__file__", None)
+    if not init:
+        return None
+    root = Path(init).resolve().parent.parent
+    return root if (root / "pyproject.toml").is_file() else None
 
 
 def build(engine: Engine) -> Scene:
@@ -205,3 +215,6 @@ if __name__ == "__main__":
     engine = Engine()
     engine.use_scene(build(engine))
     engine.run()
+    home = windfall_home()
+    if home is not None:
+        print(f"Back to Windfall with: cd {home}")

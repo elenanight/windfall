@@ -362,7 +362,7 @@ class TestHeaderEditor:
 
     def test_links_boxes_with_available_shafts(self) -> None:
         shafts = _find_all(HeaderEditor(text="Hi"), Connector)
-        assert len(shafts) == 3
+        assert len(shafts) == 2
         assert all(shaft.state == "available" for shaft in shafts)
 
 
@@ -428,7 +428,7 @@ class TestFooterEditor:
 
     def test_links_boxes_with_available_shafts(self) -> None:
         shafts = _find_all(FooterEditor(text="Bye"), Connector)
-        assert len(shafts) == 3
+        assert len(shafts) == 2
         assert all(shaft.state == "available" for shaft in shafts)
 
 

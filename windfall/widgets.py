@@ -323,12 +323,18 @@ def _index_of(choices: list[str], value: str | None) -> int:
         return 0
 
 
+def _pad_equal(*lists: list[str]) -> list[list[str]]:
+    """Pad choice lists to a shared width so side-by-side lists split evenly."""
+    width = max((len(item) for choices in lists for item in choices), default=0)
+    return [[item.ljust(width) for item in choices] for choices in lists]
+
+
 class HeaderEditor(Panel):
     """In-place editor panel for header text and colors.
 
-    A ``Panel`` subclass wrapping a ``TextInput``, two curated-color
-    ``ListView``s, and Save/Cancel buttons. ``on_save`` receives
-    ``(text, border, fg)``; ``on_cancel`` takes no arguments. Lists
+    A ``Panel`` subclass wrapping a full-width ``TextInput``, side-by-side
+    curated-color ``ListView``s, and Update/Cancel buttons. ``on_save``
+    receives ``(text, border, fg)``; ``on_cancel`` takes no arguments. Lists
     preselect the given values. Events reach the nested widgets through
     the inherited panel/box traversal.
     """
@@ -351,22 +357,28 @@ class HeaderEditor(Panel):
         self.on_save = on_save
         self.on_cancel = on_cancel
         self._field = TextInput(text)
-        self._borders = ListView(items=self._border_choices)
+        border_shown, fg_shown = _pad_equal(self._border_choices, self._text_choices)
+        self._borders = ListView(items=border_shown)
         self._borders.select(_index_of(self._border_choices, border))
-        self._fgs = ListView(items=self._text_choices)
+        self._fgs = ListView(items=fg_shown)
         self._fgs.select(_index_of(self._text_choices, fg))
         body = Column()
         body.add(Label("Header text:"))
         body.add(self._field)
         body.add(Connector("available"))
-        body.add(Label("Border color:"))
-        body.add(self._borders)
-        body.add(Connector("available"))
-        body.add(Label("Text color:"))
-        body.add(self._fgs)
+        halves = Row()
+        left = Column()
+        left.add(Label("Border:"))
+        left.add(self._borders)
+        right = Column()
+        right.add(Label("Text:"))
+        right.add(self._fgs)
+        halves.add(left)
+        halves.add(right)
+        body.add(halves)
         body.add(Connector("available"))
         actions = Row()
-        actions.add(Button("Save", on_activate=self._commit))
+        actions.add(Button("Update", on_activate=self._commit))
         actions.add(Button("Cancel", on_activate=self._abort))
         body.add(actions)
         super().__init__(body, title=title, padding=1)
@@ -404,22 +416,28 @@ class FooterEditor(Panel):
         self.on_save = on_save
         self.on_cancel = on_cancel
         self._field = TextInput(text)
-        self._borders = ListView(items=self._border_choices)
+        border_shown, fg_shown = _pad_equal(self._border_choices, self._text_choices)
+        self._borders = ListView(items=border_shown)
         self._borders.select(_index_of(self._border_choices, border))
-        self._fgs = ListView(items=self._text_choices)
+        self._fgs = ListView(items=fg_shown)
         self._fgs.select(_index_of(self._text_choices, fg))
         body = Column()
         body.add(Label("Footer text:"))
         body.add(self._field)
         body.add(Connector("available"))
-        body.add(Label("Border color:"))
-        body.add(self._borders)
-        body.add(Connector("available"))
-        body.add(Label("Text color:"))
-        body.add(self._fgs)
+        halves = Row()
+        left = Column()
+        left.add(Label("Border:"))
+        left.add(self._borders)
+        right = Column()
+        right.add(Label("Text:"))
+        right.add(self._fgs)
+        halves.add(left)
+        halves.add(right)
+        body.add(halves)
         body.add(Connector("available"))
         actions = Row()
-        actions.add(Button("Save", on_activate=self._commit))
+        actions.add(Button("Update", on_activate=self._commit))
         actions.add(Button("Cancel", on_activate=self._abort))
         body.add(actions)
         super().__init__(body, title=title, padding=1)
