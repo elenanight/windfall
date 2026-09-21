@@ -95,7 +95,7 @@ def _cmd_new(args) -> int:
         print(f"windfall: {error}", file=sys.stderr)
         return 2
     display = _display_path(target)
-    print(f"Created {display} (template {args.template}). Run it with `cd {display} && uv run python app.py`.")
+    print(f"Created {display} (template {args.template}).")
     if getattr(args, "yes", False):
         return _run_scaffolded(target)
     if sys.stdin.isatty():
