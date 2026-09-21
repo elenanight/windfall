@@ -203,13 +203,24 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    scene = module.build(Engine())
+    engine = Engine()
+    scene = module.build(engine)
     assert scene.name == "myapp"
     assert _find_all(scene.root, HeaderEditor) == []  # user opens the editor now
 
     buttons = [w for w in focusables(scene.root) if isinstance(w, Button)]
     assert scene.handle(Event(KEY, {"key": "e"})) is True
     assert buttons[1].focused is True  # E focuses Edit header, skipping Add widget
+
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    assert scene.handle(Event(KEY, {"key": "a"})) is True
+    assert buttons[0].focused is True  # A focuses Add widget
+
+    engine.running = True
+    assert scene.handle(Event(KEY, {"key": "q"})) is True
+    assert engine.running is False  # Q quits outright
+    engine.running = False
 
     _, edit_header, _, _ = buttons
     for widget in focusables(scene.root):
@@ -235,7 +246,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert config_path.is_file()
     assert "hello from myapp!" in config_path.read_text(encoding="utf-8")
     assert _find_all(scene.root, HeaderEditor) == []
-    assert len(_find_all(scene.root, Hotkey)) == 1  # hotkey restored after close
+    assert len(_find_all(scene.root, Hotkey)) == 3  # hotkeys restored after close
 
     again_engine = Engine()
     again = module.build(again_engine)

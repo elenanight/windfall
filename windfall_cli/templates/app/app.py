@@ -53,7 +53,7 @@ def build(engine: Engine) -> Scene:
     actions.add(Connector("available", horizontal=True))
     actions.add(quit)
     body.add(actions)
-    body.add(Label("E: menu · Enter: activate · arrows: move · Quit button: quit", align="center"))
+    body.add(Label("A add · E edit · Q quit · arrows move · Enter activate", align="center"))
     dialog = Panel(body, title="@@title@@", padding=0)
     content_body = Column()
     content_body.add(Label("Build your app here.", align="center"))
@@ -70,23 +70,32 @@ def build(engine: Engine) -> Scene:
 
     layer = None
 
+    def focus_widget(target) -> None:
+        for widget in focusables(scene.root):
+            widget.focus(False)
+        target.focus(True)
+
     def focus_first_action() -> None:
         """Focus the first actionable menu button, skipping unwired placeholders."""
         for widget in focusables(main):
             if isinstance(widget, Button) and widget.on_activate is not None:
-                for other in focusables(scene.root):
-                    other.focus(False)
-                widget.focus(True)
+                focus_widget(widget)
                 return
 
-    hotkey = Hotkey("e", on_press=focus_first_action)
-    root.add(hotkey)
+    hotkeys = [
+        Hotkey("a", on_press=lambda: focus_widget(add)),
+        Hotkey("e", on_press=focus_first_action),
+        Hotkey("q", on_press=engine.stop),
+    ]
+    for hotkey in hotkeys:
+        root.add(hotkey)
 
     def open_editor(kind: str) -> None:
         nonlocal layer
         if layer is not None:
             close_editor()
-        root.remove(hotkey)
+        for hotkey in hotkeys:
+            root.remove(hotkey)
         if kind == "footer":
             editor = FooterEditor(
                 text=cfg.get("footer"),
@@ -116,7 +125,8 @@ def build(engine: Engine) -> Scene:
             return
         root.remove(layer)
         layer = None
-        root.add(hotkey)
+        for hotkey in hotkeys:
+            root.add(hotkey)
         scene.clear_focus_scope()
 
     def save_header(text: str, border: str, fg: str) -> None:
