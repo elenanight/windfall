@@ -43,7 +43,7 @@ def build_badges(slug: str, version: str) -> str:
     lines = [
         f"[![version](https://img.shields.io/badge/version-{version}-blue)]({REPO_URL})",
         f"[![license](https://img.shields.io/badge/license-MIT-green)]({LICENSE_URL})",
-        f"[![changelog](https://img.shields.io/badge/changelog-Keep_A_Changelog-orange)]({CHANGELOG_URL})",
+        f"[![changelog](https://img.shields.io/static/v1?label=&message=changelog&color=orange)]({CHANGELOG_URL})",
         f"[![python](https://img.shields.io/badge/python-3.14-3776AB)]({REPO_URL})",
         f"[![last commit](https://img.shields.io/github/last-commit/{slug})]({REPO_URL})",
         f"[![stars](https://img.shields.io/github/stars/{slug})]({REPO_URL})",
