@@ -10,6 +10,7 @@ from windfall import (
     Column,
     Config,
     Connector,
+    EditMenu,
     Engine,
     FooterEditor,
     HeaderEditor,
@@ -29,9 +30,11 @@ DEFAULTS = {
     "header": "hello from @@package@@!",
     "border": "cyan",
     "fg": "bright_white",
+    "header_visible": True,
     "footer": "built with windfall",
     "footer_border": "cyan",
     "footer_fg": "white",
+    "footer_visible": True,
     "widgets": [],
 }
 
@@ -54,8 +57,7 @@ def build(engine: Engine) -> Scene:
     )
     add = Button("Add widget", on_activate=lambda: open_editor("widget"), padding=0)
     remove = Button("Remove widget", on_activate=lambda: open_editor("remove"), padding=0)
-    edit_header = Button("Edit header bar", on_activate=lambda: open_editor("header"), padding=0)
-    edit_footer = Button("Edit footer bar", on_activate=lambda: open_editor("footer"), padding=0)
+    edit = Button("Edit", on_activate=lambda: open_edit_menu(), padding=0)
     quit = Button("Quit", on_activate=engine.stop, padding=0)
     body = Column()
     actions = Row()
@@ -63,9 +65,7 @@ def build(engine: Engine) -> Scene:
     actions.add(Connector("available", horizontal=True))
     actions.add(remove)
     actions.add(Connector("available", horizontal=True))
-    actions.add(edit_header)
-    actions.add(Connector("available", horizontal=True))
-    actions.add(edit_footer)
+    actions.add(edit)
     actions.add(Connector("available", horizontal=True))
     actions.add(quit)
     actions_center = Center()
@@ -77,7 +77,7 @@ def build(engine: Engine) -> Scene:
     content_main.add(Label("Build your app here.", align="center"))
     content_main.add(Label("Add widgets to the content section in app.py.", align="center"))
     content_aside = Column()
-    content_row = Row()
+    content_row = Row(fill=True, weights=[1, 0])
     content_row.add(content_main)
     content_row.add(content_aside)
     content = Panel(content_row, title="Content", padding=1)
@@ -98,11 +98,8 @@ def build(engine: Engine) -> Scene:
         target.focus(True)
 
     def focus_first_action() -> None:
-        """Focus the first actionable menu button, skipping unwired placeholders."""
-        for widget in focusables(main):
-            if isinstance(widget, Button) and widget.on_activate is not None:
-                focus_widget(widget)
-                return
+        """Focus the Edit button, the single entry to bar and widget editing."""
+        focus_widget(edit)
 
     hotkeys = [
         Hotkey("a", on_press=lambda: focus_widget(add)),
@@ -113,17 +110,26 @@ def build(engine: Engine) -> Scene:
     for hotkey in hotkeys:
         root.add(hotkey)
 
-    def open_editor(kind: str) -> None:
+    def _show_editor(editor) -> None:
+        """Swap any open editor for ``editor``, parking hotkeys and scoping focus."""
         nonlocal layer
         if layer is not None:
             close_editor()
         for hotkey in hotkeys:
             root.remove(hotkey)
+        # Rest inline under the menu and above the header; the layout
+        # reflows around it until save/cancel takes it away.
+        layer = editor
+        main.children.insert(1, editor)
+        scene.set_focus_scope(editor)
+
+    def open_editor(kind: str) -> None:
         if kind == "footer":
             editor = FooterEditor(
                 text=cfg.get("footer"),
                 border=cfg.get("footer_border"),
                 fg=cfg.get("footer_fg"),
+                visible=cfg.get("footer_visible", True),
                 on_save=save_footer,
                 on_cancel=close_editor,
             )
@@ -137,14 +143,38 @@ def build(engine: Engine) -> Scene:
                 text=cfg.get("header"),
                 border=cfg.get("border"),
                 fg=cfg.get("fg"),
+                visible=cfg.get("header_visible", True),
                 on_save=save_header,
                 on_cancel=close_editor,
             )
-        # Rest inline under the menu and above the header; the layout
-        # reflows around it until save/cancel takes it away.
-        layer = editor
-        main.children.insert(1, editor)
-        scene.set_focus_scope(editor)
+        _show_editor(editor)
+
+    def open_edit_menu() -> None:
+        entries = [
+            "Header bar" + ("" if cfg.get("header_visible", True) else " (hidden)"),
+            "Footer bar" + ("" if cfg.get("footer_visible", True) else " (hidden)"),
+        ]
+        entries.extend(f"{spec.get('type')} · {spec.get('placement')}" for spec, _, _ in placed)
+        _show_editor(EditMenu(entries, on_pick=pick_edit_target, on_cancel=close_editor))
+
+    def pick_edit_target(index: int) -> None:
+        if index == 0:
+            open_editor("header")
+        elif index == 1:
+            open_editor("footer")
+        else:
+            open_edit_widget(index - 2)
+
+    def open_edit_widget(index: int) -> None:
+        spec, _, _ = placed[index]
+        editor = AddWidget(
+            title="Edit widget",
+            on_add=lambda kind, placement, stretch: save_edited(index, kind, placement, stretch),
+            on_cancel=close_editor,
+            fits=space_reason,
+        )
+        editor.preset(spec.get("type", "Label"), spec.get("placement", "full"), spec.get("stretch", False))
+        _show_editor(editor)
 
     def close_editor() -> None:
         nonlocal layer
@@ -156,26 +186,39 @@ def build(engine: Engine) -> Scene:
             root.add(hotkey)
         scene.clear_focus_scope()
 
-    def save_header(text: str, border: str, fg: str) -> None:
-        cfg.set("header", text).set("border", border).set("fg", fg).save()
+    def save_header(text: str, border: str, fg: str, visible: bool) -> None:
+        cfg.set("header", text).set("border", border).set("fg", fg).set("header_visible", visible).save()
         header.set_text(text)
         header.set_colors(border=border, fg=fg)
         close_editor()
+        _sync_bars()
 
-    def save_footer(text: str, border: str, fg: str) -> None:
-        cfg.set("footer", text).set("footer_border", border).set("footer_fg", fg).save()
+    def save_footer(text: str, border: str, fg: str, visible: bool) -> None:
+        cfg.set("footer", text).set("footer_border", border).set("footer_fg", fg).set(
+            "footer_visible", visible
+        ).save()
         footer.set_text(text)
         footer.set_colors(border=border, fg=fg)
         close_editor()
+        _sync_bars()
+
+    def _sync_bars() -> None:
+        """Match bar presence to the saved visibility flags."""
+        for bar in (header, footer):
+            if bar in main.children:
+                main.remove(bar)
+        if cfg.get("header_visible", True):
+            main.children.insert(1, header)
+        if cfg.get("footer_visible", True):
+            main.add(footer)
 
     placed: list = []  # (spec, parent, node) records backing removal
 
-    def place_widget(kind: str, placement: str, stretch: bool = False):
-        """Drop an assembled widget into the content section at a placement."""
+    def build_slot(kind: str, placement: str, stretch: bool = False):
+        """Assemble a placed widget and its slot without attaching either."""
         widget = engine.make_widget(kind)
         target = content_aside if placement == "sidebar" else content_main
         if stretch or placement in ("sidebar", "full"):
-            target.add(widget)
             return target, widget
         if placement == "left":
             slot = Row()
@@ -186,8 +229,13 @@ def build(engine: Engine) -> Scene:
         else:
             slot = Center(align="right")
             slot.add(widget)
-        target.add(slot)
         return target, slot
+
+    def place_widget(kind: str, placement: str, stretch: bool = False):
+        """Drop an assembled widget into the content section at a placement."""
+        target, node = build_slot(kind, placement, stretch)
+        target.add(node)
+        return target, node
 
     def space_reason(kind: str, placement: str, stretch: bool) -> str | None:
         """Refuse placement when the widget is wider than the content area."""
@@ -207,6 +255,19 @@ def build(engine: Engine) -> Scene:
         cfg.set("widgets", [record[0] for record in placed]).save()
         close_editor()
 
+    def save_edited(index: int, kind: str, placement: str, stretch: bool) -> None:
+        _, parent, node = placed[index]
+        new_parent, new_node = build_slot(kind, placement, stretch)
+        if new_parent is parent:
+            new_parent.children[parent.children.index(node)] = new_node
+        else:
+            parent.remove(node)
+            new_parent.add(new_node)
+        new_spec = {"type": kind, "placement": placement, "stretch": stretch}
+        placed[index] = (new_spec, new_parent, new_node)
+        cfg.set("widgets", [record[0] for record in placed]).save()
+        close_editor()
+
     def remove_widget(index: int) -> None:
         _, parent, node = placed.pop(index)
         parent.remove(node)
@@ -220,6 +281,7 @@ def build(engine: Engine) -> Scene:
         parent, node = place_widget(kind, placement, stretch)
         placed.append(({"type": kind, "placement": placement, "stretch": stretch}, parent, node))
 
+    _sync_bars()
     return scene
 
 

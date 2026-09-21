@@ -333,10 +333,11 @@ class HeaderEditor(Panel):
     """In-place editor panel for header text and colors.
 
     A ``Panel`` subclass wrapping a full-width ``TextInput``, side-by-side
-    curated-color ``ListView``s, and Update/Cancel buttons. ``on_save``
-    receives ``(text, border, fg)``; ``on_cancel`` takes no arguments. Lists
-    preselect the given values. Events reach the nested widgets through
-    the inherited panel/box traversal.
+    curated-color ``ListView``s, a visibility toggle, and Update/Cancel
+    buttons. ``on_save`` receives ``(text, border, fg, visible)``;
+    ``on_cancel`` takes no arguments. Lists preselect the given values.
+    Events reach the nested widgets through the inherited panel/box
+    traversal.
     """
 
     def __init__(
@@ -345,6 +346,7 @@ class HeaderEditor(Panel):
         text: str = "",
         border: str = "cyan",
         fg: str = "white",
+        visible: bool = True,
         border_choices=None,
         text_choices=None,
         on_save=None,
@@ -357,25 +359,33 @@ class HeaderEditor(Panel):
         self.on_save = on_save
         self.on_cancel = on_cancel
         self._field = TextInput(text)
-        border_shown, fg_shown = _pad_equal(self._border_choices, self._text_choices)
+        border_shown, fg_shown, vis_shown = _pad_equal(
+            self._border_choices, self._text_choices, ["Yes", "No"]
+        )
         self._borders = ListView(items=border_shown)
         self._borders.select(_index_of(self._border_choices, border))
         self._fgs = ListView(items=fg_shown)
         self._fgs.select(_index_of(self._text_choices, fg))
+        self._visible = ListView(items=vis_shown)
+        self._visible.select(0 if visible else 1)
         body = Column()
         body.add(Label("Header text:"))
         body.add(self._field)
         body.add(Connector("available"))
-        halves = Row(fill=True)
+        thirds = Row(fill=True)
         left = Column()
         left.add(Label("Border:"))
         left.add(self._borders)
+        middle = Column()
+        middle.add(Label("Text:"))
+        middle.add(self._fgs)
         right = Column()
-        right.add(Label("Text:"))
-        right.add(self._fgs)
-        halves.add(left)
-        halves.add(right)
-        body.add(halves)
+        right.add(Label("Visible:"))
+        right.add(self._visible)
+        thirds.add(left)
+        thirds.add(middle)
+        thirds.add(right)
+        body.add(thirds)
         body.add(Connector("available"))
         actions = Row()
         actions.add(Button("Update", on_activate=self._commit))
@@ -387,8 +397,9 @@ class HeaderEditor(Panel):
         text = self._field.value.strip() or self._text
         border = self._border_choices[self._borders.selection]
         fg = self._text_choices[self._fgs.selection]
+        visible = self._visible.selection == 0
         if self.on_save is not None:
-            self.on_save(text, border, fg)
+            self.on_save(text, border, fg, visible)
 
     def _abort(self) -> None:
         if self.on_cancel is not None:
@@ -404,6 +415,7 @@ class FooterEditor(Panel):
         text: str = "",
         border: str = "cyan",
         fg: str = "white",
+        visible: bool = True,
         border_choices=None,
         text_choices=None,
         on_save=None,
@@ -416,25 +428,33 @@ class FooterEditor(Panel):
         self.on_save = on_save
         self.on_cancel = on_cancel
         self._field = TextInput(text)
-        border_shown, fg_shown = _pad_equal(self._border_choices, self._text_choices)
+        border_shown, fg_shown, vis_shown = _pad_equal(
+            self._border_choices, self._text_choices, ["Yes", "No"]
+        )
         self._borders = ListView(items=border_shown)
         self._borders.select(_index_of(self._border_choices, border))
         self._fgs = ListView(items=fg_shown)
         self._fgs.select(_index_of(self._text_choices, fg))
+        self._visible = ListView(items=vis_shown)
+        self._visible.select(0 if visible else 1)
         body = Column()
         body.add(Label("Footer text:"))
         body.add(self._field)
         body.add(Connector("available"))
-        halves = Row(fill=True)
+        thirds = Row(fill=True)
         left = Column()
         left.add(Label("Border:"))
         left.add(self._borders)
+        middle = Column()
+        middle.add(Label("Text:"))
+        middle.add(self._fgs)
         right = Column()
-        right.add(Label("Text:"))
-        right.add(self._fgs)
-        halves.add(left)
-        halves.add(right)
-        body.add(halves)
+        right.add(Label("Visible:"))
+        right.add(self._visible)
+        thirds.add(left)
+        thirds.add(middle)
+        thirds.add(right)
+        body.add(thirds)
         body.add(Connector("available"))
         actions = Row()
         actions.add(Button("Update", on_activate=self._commit))
@@ -446,8 +466,9 @@ class FooterEditor(Panel):
         text = self._field.value.strip() or self._text
         border = self._border_choices[self._borders.selection]
         fg = self._text_choices[self._fgs.selection]
+        visible = self._visible.selection == 0
         if self.on_save is not None:
-            self.on_save(text, border, fg)
+            self.on_save(text, border, fg, visible)
 
     def _abort(self) -> None:
         if self.on_cancel is not None:
@@ -554,6 +575,12 @@ class AddWidget(Panel):
         if self.on_add is not None:
             self.on_add(kind, placement, stretch)
 
+    def preset(self, kind: str, placement: str, stretch: bool) -> None:
+        """Preselect lists for editing an existing placement."""
+        self._types.select(_index_of(self._kinds, kind))
+        self._places.select(_index_of(self._placements, placement))
+        self._stretch.select(1 if stretch else 0)
+
     def _abort(self) -> None:
         if self.on_cancel is not None:
             self.on_cancel()
@@ -594,6 +621,49 @@ class RemoveWidget(Panel):
             return
         if self.on_remove is not None:
             self.on_remove(self._list.selection)
+
+    def _abort(self) -> None:
+        if self.on_cancel is not None:
+            self.on_cancel()
+
+
+class EditMenu(Panel):
+    """Drill-down list of editable things: bars first, then placed widgets.
+
+    Entries are display strings; ``on_pick`` receives the selected index
+    and ``on_cancel`` takes no arguments. Picking fires straight from the
+    list, so there is no confirm button — just Cancel.
+    """
+
+    def __init__(
+        self,
+        entries=None,
+        *,
+        on_pick=None,
+        on_cancel=None,
+        title: str = "Edit",
+    ) -> None:
+        self._entries = list(entries or [])
+        self.on_pick = on_pick
+        self.on_cancel = on_cancel
+        self._list = ListView(
+            items=self._entries or ["(nothing to edit)"],
+            on_select=self._pick,
+        )
+        body = Column()
+        body.add(Label("What to edit:"))
+        body.add(self._list)
+        body.add(Connector("available"))
+        actions = Row()
+        actions.add(Button("Cancel", on_activate=self._abort))
+        body.add(actions)
+        super().__init__(body, title=title, padding=1)
+
+    def _pick(self, item: str, index: int) -> None:
+        if not self._entries:
+            return
+        if self.on_pick is not None:
+            self.on_pick(index)
 
     def _abort(self) -> None:
         if self.on_cancel is not None:

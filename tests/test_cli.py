@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from windfall.events import MOVE, Event
 from windfall_cli import cli
 
 
@@ -232,19 +233,25 @@ def _find_all(node, kind: type) -> list:
     return found
 
 
+def _move(direction: str) -> Event:
+    return Event(MOVE, {"direction": direction})
+
+
 def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     import importlib.util
 
     from windfall import Compositor, Engine
-    from windfall.events import ACTIVATE, KEY, Event
+    from windfall.events import ACTIVATE, KEY
     from windfall.primitives import Connector
     from windfall.scene import focusables
     from windfall.widgets import (
         AddWidget,
         Button,
+        EditMenu,
         FooterEditor,
         HeaderEditor,
         Hotkey,
+        ListView,
         RemoveWidget,
         TextInput,
     )
@@ -269,11 +276,11 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
 
     buttons = [w for w in focusables(scene.root) if isinstance(w, Button)]
     assert scene.handle(Event(KEY, {"key": "e"})) is True
-    assert buttons[0].focused is True  # E focuses Add widget, now actionable
+    assert buttons[2].focused is True  # E focuses Edit
 
     for widget in focusables(scene.root):
         widget.focus(False)
-    _, _, edit_header, _, _ = buttons
+    _, _, edit, _ = buttons
 
     for widget in focusables(scene.root):
         widget.focus(False)
@@ -290,13 +297,19 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert engine.running is False  # Q quits outright
     engine.running = False
 
-    _, _, edit_header, _, _ = buttons
+    _, _, edit, _ = buttons
     for widget in focusables(scene.root):
         widget.focus(False)
-    edit_header.focus(True)
+    edit.focus(True)
     assert scene.handle(Event(ACTIVATE)) is True
+    menus = _find_all(scene.root, EditMenu)
+    assert len(menus) == 1  # Edit drills into a target list
+    menu_lists = [w for w in focusables(menus[0]) if isinstance(w, ListView)]
+    menu_lists[0].focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True  # pick "Header bar"
     editors = _find_all(scene.root, HeaderEditor)
-    assert len(editors) == 1  # menu opens the editor in place
+    assert len(editors) == 1  # menu swaps itself for the editor
+    assert _find_all(scene.root, EditMenu) == []
     main = scene.root.children[0]
     assert main.children[1] is editors[0]  # resting under the menu, above the header
     assert _find_all(scene.root, Hotkey) == []  # hotkey parked while editing
@@ -318,12 +331,61 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert _find_all(scene.root, HeaderEditor) == []
     assert len(_find_all(scene.root, Hotkey)) == 4  # hotkeys restored after close
 
+    buttons = [w for w in focusables(scene.root) if isinstance(w, Button)]
+    _, _, edit, _ = buttons
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    edit.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+    menus = _find_all(scene.root, EditMenu)
+    menu_lists = [w for w in focusables(menus[0]) if isinstance(w, ListView)]
+    menu_lists[0].focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True  # pick "Header bar"
+    editors = _find_all(scene.root, HeaderEditor)
+    views = [w for w in focusables(editors[0]) if isinstance(w, ListView)]
+    views[2].focus(True)
+    views[2].handle(_move("down"))
+    views[2].focus(False)
+    save, _ = [w for w in focusables(editors[0]) if isinstance(w, Button)]
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    save.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+    assert '"header_visible": false' in config_path.read_text(encoding="utf-8")
+    assert not any("hello from myapp!" in line for line in Compositor().text(scene))
+
+    hidden = module.build(Engine())
+    assert not any("hello from myapp!" in line for line in Compositor().text(hidden))
+    buttons = [w for w in focusables(hidden.root) if isinstance(w, Button)]
+    _, _, edit, _ = buttons
+    for widget in focusables(hidden.root):
+        widget.focus(False)
+    edit.focus(True)
+    assert hidden.handle(Event(ACTIVATE)) is True
+    menus = _find_all(hidden.root, EditMenu)
+    menu_lists = [w for w in focusables(menus[0]) if isinstance(w, ListView)]
+    menu_lists[0].focus(True)
+    assert hidden.handle(Event(ACTIVATE)) is True
+    editors = _find_all(hidden.root, HeaderEditor)
+    views = [w for w in focusables(editors[0]) if isinstance(w, ListView)]
+    assert views[2].selection == 1  # still "No" from the saved flag
+    views[2].focus(True)
+    views[2].handle(_move("up"))
+    views[2].focus(False)
+    save, _ = [w for w in focusables(editors[0]) if isinstance(w, Button)]
+    for widget in focusables(hidden.root):
+        widget.focus(False)
+    save.focus(True)
+    assert hidden.handle(Event(ACTIVATE)) is True
+    assert '"header_visible": true' in config_path.read_text(encoding="utf-8")
+    assert any("hello from myapp!" in line for line in Compositor().text(hidden))
+
     again_engine = Engine()
     again = module.build(again_engine)
     assert _find_all(again.root, HeaderEditor) == []
     assert any("hello from myapp!" in line for line in Compositor().text(again))
     shafts = _find_all(again.root, Connector)
-    assert len(shafts) == 4
+    assert len(shafts) == 3
     assert all(shaft.state == "available" and shaft.horizontal for shaft in shafts)
 
     quit = next(
@@ -339,11 +401,17 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert again_engine.running is False
 
     buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
-    _, _, _, edit_footer, _ = buttons
+    _, _, edit, _ = buttons
     for widget in focusables(again.root):
         widget.focus(False)
-    edit_footer.focus(True)
+    edit.focus(True)
     assert again.handle(Event(ACTIVATE)) is True
+    menus = _find_all(again.root, EditMenu)
+    assert len(menus) == 1
+    menu_lists = [w for w in focusables(menus[0]) if isinstance(w, ListView)]
+    menu_lists[0].focus(True)
+    menu_lists[0].handle(_move("down"))
+    assert again.handle(Event(ACTIVATE)) is True  # pick "Footer bar"
     footers = _find_all(again.root, FooterEditor)
     assert len(footers) == 1  # footer editor opens in place
 
@@ -356,7 +424,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert _find_all(again.root, FooterEditor) == []
 
     buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
-    add, _, _, _, _ = buttons
+    add, _, _, _ = buttons
     for widget in focusables(again.root):
         widget.focus(False)
     add.focus(True)
@@ -373,7 +441,38 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert _find_all(again.root, AddWidget) == []
 
     buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
-    _, remove, _, _, _ = buttons
+    _, _, edit, _ = buttons
+    for widget in focusables(again.root):
+        widget.focus(False)
+    edit.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    menus = _find_all(again.root, EditMenu)
+    assert len(menus) == 1
+    menu_lists = [w for w in focusables(menus[0]) if isinstance(w, ListView)]
+    menu_lists[0].focus(True)
+    menu_lists[0].handle(_move("down"))
+    menu_lists[0].handle(_move("down"))
+    assert again.handle(Event(ACTIVATE)) is True  # pick the placed Label
+    editors = _find_all(again.root, AddWidget)
+    assert len(editors) == 1  # widget editor opens preset to current values
+    kinds, places, _ = [w for w in focusables(editors[0]) if isinstance(w, ListView)]
+    assert kinds.selection == 0
+    assert places.selection == 0  # still "left" from the drop
+    places.focus(True)
+    places.handle(_move("down"))
+    places.handle(_move("down"))
+    places.focus(False)
+    save, _ = [w for w in focusables(editors[0]) if isinstance(w, Button)]
+    for widget in focusables(again.root):
+        widget.focus(False)
+    save.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    assert '"placement": "right"' in config_path.read_text(encoding="utf-8")
+    assert _find_all(again.root, AddWidget) == []
+    assert any("New label" in line for line in Compositor().text(again))
+
+    buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
+    _, remove, _, _ = buttons
     for widget in focusables(again.root):
         widget.focus(False)
     remove.focus(True)

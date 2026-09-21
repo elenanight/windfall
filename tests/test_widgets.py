@@ -13,6 +13,7 @@ from windfall.widgets import (
     TEXT_COLORS,
     AddWidget,
     Button,
+    EditMenu,
     Footer,
     FooterEditor,
     Header,
@@ -307,12 +308,12 @@ class TestHeaderEditor:
             text="Hi",
             border="red",
             fg="bright_green",
-            on_save=lambda text, border, fg: saved.append((text, border, fg)),
+            on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
         )
         save, _ = _editor_buttons(editor)
         save.focus(True)
         assert _hosted(editor).handle(Event(ACTIVATE)) is True
-        assert saved == [("Hi", "red", "bright_green")]
+        assert saved == [("Hi", "red", "bright_green", True)]
 
     def test_save_follows_moved_selection(self) -> None:
         saved: list[tuple] = []
@@ -320,7 +321,7 @@ class TestHeaderEditor:
             text="Hi",
             border="red",
             fg="bright_green",
-            on_save=lambda text, border, fg: saved.append((text, border, fg)),
+            on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
         )
         views = [w for w in focusables(editor) if isinstance(w, ListView)]
         views[0].focus(True)
@@ -336,7 +337,7 @@ class TestHeaderEditor:
         cancelled: list[bool] = []
         editor = HeaderEditor(
             text="Hi",
-            on_save=lambda text, border, fg: saved.append((text, border, fg)),
+            on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
             on_cancel=lambda: cancelled.append(True),
         )
         _, cancel = _editor_buttons(editor)
@@ -348,7 +349,8 @@ class TestHeaderEditor:
     def test_empty_text_falls_back_to_initial(self) -> None:
         saved: list[tuple] = []
         editor = HeaderEditor(
-            text="Hi", on_save=lambda text, border, fg: saved.append((text, border, fg))
+            text="Hi",
+            on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
         )
         fields = [w for w in focusables(editor) if isinstance(w, TextInput)]
         fields[0].focus(True)
@@ -359,6 +361,32 @@ class TestHeaderEditor:
         save.focus(True)
         _hosted(editor).handle(Event(ACTIVATE))
         assert saved[0][0] == "Hi"
+        assert saved[0][3] is True
+
+    def test_visible_toggle_saves_false(self) -> None:
+        saved: list[tuple] = []
+        editor = HeaderEditor(
+            text="Hi",
+            on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
+        )
+        views = [w for w in focusables(editor) if isinstance(w, ListView)]
+        views[2].focus(True)
+        views[2].handle(move("down"))
+        views[2].focus(False)
+        save, _ = _editor_buttons(editor)
+        save.focus(True)
+        _hosted(editor).handle(Event(ACTIVATE))
+        assert saved == [("Hi", "cyan", "white", False)]
+
+    def test_visible_preselects_no(self) -> None:
+        editor = HeaderEditor(visible=False)
+        views = [w for w in focusables(editor) if isinstance(w, ListView)]
+        assert views[2].selection == 1
+
+    def test_columns_share_equal_widths_for_thirds(self) -> None:
+        editor = HeaderEditor()
+        widths = {w.size().x for w in focusables(editor) if isinstance(w, ListView)}
+        assert widths == {16}
 
     def test_links_boxes_with_available_shafts(self) -> None:
         shafts = _find_all(HeaderEditor(text="Hi"), Connector)
@@ -405,19 +433,19 @@ class TestFooterEditor:
             text="Bye",
             border="magenta",
             fg="yellow",
-            on_save=lambda text, border, fg: saved.append((text, border, fg)),
+            on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
         )
         save, _ = _editor_buttons(editor)
         save.focus(True)
         assert _hosted(editor).handle(Event(ACTIVATE)) is True
-        assert saved == [("Bye", "magenta", "yellow")]
+        assert saved == [("Bye", "magenta", "yellow", True)]
 
     def test_cancel_calls_on_cancel_only(self) -> None:
         saved: list[tuple] = []
         cancelled: list[bool] = []
         editor = FooterEditor(
             text="Bye",
-            on_save=lambda text, border, fg: saved.append((text, border, fg)),
+            on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
             on_cancel=lambda: cancelled.append(True),
         )
         _, cancel = _editor_buttons(editor)
@@ -425,6 +453,26 @@ class TestFooterEditor:
         assert _hosted(editor).handle(Event(ACTIVATE)) is True
         assert cancelled == [True]
         assert saved == []
+
+    def test_visible_toggle_saves_false(self) -> None:
+        saved: list[tuple] = []
+        editor = FooterEditor(
+            text="Bye",
+            on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
+        )
+        views = [w for w in focusables(editor) if isinstance(w, ListView)]
+        views[2].focus(True)
+        views[2].handle(move("down"))
+        views[2].focus(False)
+        save, _ = _editor_buttons(editor)
+        save.focus(True)
+        _hosted(editor).handle(Event(ACTIVATE))
+        assert saved == [("Bye", "cyan", "white", False)]
+
+    def test_columns_share_equal_widths_for_thirds(self) -> None:
+        editor = FooterEditor()
+        widths = {w.size().x for w in focusables(editor) if isinstance(w, ListView)}
+        assert widths == {16}
 
     def test_links_boxes_with_available_shafts(self) -> None:
         shafts = _find_all(FooterEditor(text="Bye"), Connector)
@@ -524,6 +572,49 @@ class TestRemoveWidget:
         remove.focus(True)
         assert _hosted(editor).handle(Event(ACTIVATE)) is True
         assert removed == []
+
+
+class TestEditMenu:
+    def test_pick_delivers_selected_index(self) -> None:
+        picked: list[int] = []
+        menu = EditMenu(["Header bar", "Footer bar"], on_pick=picked.append)
+        views = [w for w in focusables(menu) if isinstance(w, ListView)]
+        views[0].focus(True)
+        views[0].handle(move("down"))
+        assert _hosted(menu).handle(Event(ACTIVATE)) is True
+        assert picked == [1]
+
+    def test_cancel_calls_on_cancel_only(self) -> None:
+        picked: list[int] = []
+        cancelled: list[bool] = []
+        menu = EditMenu(
+            ["Header bar"],
+            on_pick=picked.append,
+            on_cancel=lambda: cancelled.append(True),
+        )
+        cancel = next(w for w in focusables(menu) if isinstance(w, Button))
+        cancel.focus(True)
+        assert _hosted(menu).handle(Event(ACTIVATE)) is True
+        assert cancelled == [True]
+        assert picked == []
+
+    def test_empty_entries_pick_is_noop(self) -> None:
+        picked: list[int] = []
+        menu = EditMenu([], on_pick=picked.append)
+        views = [w for w in focusables(menu) if isinstance(w, ListView)]
+        views[0].focus(True)
+        assert _hosted(menu).handle(Event(ACTIVATE)) is True
+        assert picked == []
+
+
+class TestAddWidgetPreset:
+    def test_preset_selects_current_values(self) -> None:
+        editor = AddWidget()
+        editor.preset("ListView", "sidebar", True)
+        kinds, places, stretches = [w for w in focusables(editor) if isinstance(w, ListView)]
+        assert kinds.selection == 3
+        assert places.selection == 4
+        assert stretches.selection == 1
 
 
 class TestHotkey:

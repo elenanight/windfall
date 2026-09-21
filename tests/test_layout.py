@@ -88,6 +88,33 @@ def test_row_fill_keeps_natural_widths_when_cramped() -> None:
     assert canvas.text() == ["aab"]
 
 
+def test_row_fill_weights_share_extra_proportionally() -> None:
+    row = Row(fill=True, weights=[1, 0])
+    row.add(Text("aa"))
+    row.add(Text("bb"))
+    canvas = Canvas(10, 1)
+    row.draw(canvas, Rect(0, 0, 10, 1))
+    assert canvas.text() == ["aa      bb"]
+
+
+def test_row_fill_missing_weights_default_to_one() -> None:
+    row = Row(fill=True, weights=[2])
+    row.add(Text("aa"))
+    row.add(Text("bb"))
+    canvas = Canvas(10, 1)
+    row.draw(canvas, Rect(0, 0, 10, 1))
+    assert canvas.text() == ["aa    bb  "]
+
+
+def test_row_fill_all_zero_weights_keeps_natural() -> None:
+    row = Row(fill=True, weights=[0, 0])
+    row.add(Text("aa"))
+    row.add(Text("bb"))
+    canvas = Canvas(10, 1)
+    row.draw(canvas, Rect(0, 0, 10, 1))
+    assert canvas.text() == ["aabb      "]
+
+
 def test_stack_size_uses_max_dimensions() -> None:
     stack = Stack()
     stack.add(Text("aa"))

@@ -42,6 +42,7 @@ from windfall.style import Style, Theme
 from windfall.widgets import (
     AddWidget,
     Button,
+    EditMenu,
     Footer,
     FooterEditor,
     Header,
@@ -54,7 +55,7 @@ from windfall.widgets import (
     TextInput,
 )
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 
 __all__ = [
     "ACTIVATE",
@@ -81,6 +82,7 @@ __all__ = [
     "Connector",
     "Container",
     "Divider",
+    "EditMenu",
     "Engine",
     "Event",
     "EventQueue",

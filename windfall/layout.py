@@ -96,19 +96,27 @@ class Column(Container):
 class Row(Container):
     """Places children left-to-right, each at its natural width.
 
-    With ``fill=True`` the extra width is shared equally across children
-    so the row spans the available rect; the default keeps natural widths
-    for developers who do not want their widgets stretched.
+    With ``fill=True`` the extra width is shared across children so the row
+    spans the available rect; the default keeps natural widths for
+    developers who do not want their widgets stretched. ``weights`` tunes
+    each child's share (``0`` keeps that child at its natural width);
+    missing entries default to ``1``.
     """
 
-    def __init__(self, fill: bool = False) -> None:
+    def __init__(self, fill: bool = False, weights=None) -> None:
         super().__init__()
         self._fill = fill
+        self._weights = list(weights) if weights is not None else []
 
     def size(self) -> Vec2:
         width = sum(child.size().x for child in self.children)
         height = max((child.size().y for child in self.children), default=0)
         return Vec2(width, height)
+
+    def _weight(self, index: int) -> int:
+        if index < len(self._weights):
+            return max(0, self._weights[index])
+        return 1
 
     def draw(self, canvas, rect: Rect) -> None:
         if not self._fill or not self.children:
@@ -116,10 +124,17 @@ class Row(Container):
             return
         natural = [child.size() for child in self.children]
         extra = max(0, rect.width - sum(size.x for size in natural))
-        share, remainder = divmod(extra, len(self.children))
+        total = sum(self._weight(index) for index in range(len(self.children)))
+        if total <= 0:
+            self._draw_natural(canvas, rect)
+            return
+        shares = []
+        for index in range(len(self.children)):
+            shares.append(extra * self._weight(index) // total)
+        remainder = extra - sum(shares)
         x = rect.x
         for index, child in enumerate(self.children):
-            width = natural[index].x + share + (1 if index < remainder else 0)
+            width = natural[index].x + shares[index] + (1 if index < remainder else 0)
             child.draw(canvas, Rect(x, rect.y, width, rect.height))
             x += width
 
