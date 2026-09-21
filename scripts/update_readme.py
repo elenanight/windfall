@@ -43,13 +43,12 @@ def build_badges(slug: str, version: str) -> str:
     """Render the badge block for a repo slug and version."""
     lines = [
         f"[![version](https://img.shields.io/badge/version-{version}-blue)]({REPO_URL})",
+        f"[![stable](https://img.shields.io/github/actions/workflow/status/{slug}/ci.yml?branch=main&label=stable)]({ACTIONS_URL})",
+        f"[![dev](https://img.shields.io/github/actions/workflow/status/{slug}/ci.yml?branch=dev&label=dev)]({ACTIONS_URL})",
         f"[![license](https://img.shields.io/badge/license-MIT-green)]({LICENSE_URL})",
         f"[![changelog](https://img.shields.io/static/v1?label=&message=changelog&color=orange)]({CHANGELOG_URL})",
         f"[![python](https://img.shields.io/badge/python-3.14-3776AB)]({REPO_URL})",
         f"[![last commit](https://img.shields.io/github/last-commit/{slug})]({REPO_URL})",
-        f"[![stars](https://img.shields.io/github/stars/{slug})]({REPO_URL})",
-        f"[![stable](https://github.com/{slug}/actions/workflows/ci.yml/badge.svg?branch=main)]({ACTIONS_URL})",
-        f"[![dev](https://github.com/{slug}/actions/workflows/ci.yml/badge.svg?branch=dev)]({ACTIONS_URL})",
     ]
     return BADGES_START + "\n" + "\n".join(lines) + "\n" + BADGES_END
 
