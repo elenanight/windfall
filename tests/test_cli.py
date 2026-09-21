@@ -398,7 +398,8 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     again_engine.running = True
     quit.focus(True)
     assert again.handle(Event(ACTIVATE)) is True
-    assert again_engine.running is False
+    assert again_engine.running is False  # Back stops the loop
+    assert any("← Back" in line for line in Compositor().text(again))
 
     buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
     _, _, edit, _ = buttons
