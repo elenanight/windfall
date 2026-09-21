@@ -68,7 +68,7 @@ connectors:
   widgets. Bars offer text, curated colors, and visible flags; widgets
   offer kind, placement, and stretch. Everything persists to
   `.windfallrc.json` and rebuilds on launch.
-- **Hotkeys** — `A` add, `E` edit, `R` remove, `Q` back. Arrow keys move
+- **Hotkeys** — `W` add, `E` edit, `R` remove, `Q` back. Arrow keys move
   focus, Enter activates.
 - **Content section** — add widgets by palette, place them left, center,
   right, full width, or sidebar, and remove them the same way.
