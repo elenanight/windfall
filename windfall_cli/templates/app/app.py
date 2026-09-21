@@ -77,7 +77,7 @@ def build(engine: Engine) -> Scene:
     content_main.add(Label("Build your app here.", align="center"))
     content_main.add(Label("Add widgets to the content section in app.py.", align="center"))
     content_aside = Column()
-    content_row = Row()
+    content_row = Row(fill=True, weights=[1, 0])
     content_row.add(content_main)
     content_row.add(content_aside)
     content = Panel(content_row, title="Content", padding=1)
