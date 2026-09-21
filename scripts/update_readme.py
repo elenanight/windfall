@@ -30,6 +30,7 @@ DEFAULT_SLUG = "elenanight/windfall"
 REPO_URL = "https://github.com/elenanight/windfall"
 LICENSE_URL = REPO_URL + "/blob/main/LICENSE"
 CHANGELOG_URL = REPO_URL + "/blob/main/CHANGELOG.md"
+ACTIONS_URL = REPO_URL + "/actions"
 
 
 def project_version(path: Path | None = None) -> str:
@@ -47,6 +48,8 @@ def build_badges(slug: str, version: str) -> str:
         f"[![python](https://img.shields.io/badge/python-3.14-3776AB)]({REPO_URL})",
         f"[![last commit](https://img.shields.io/github/last-commit/{slug})]({REPO_URL})",
         f"[![stars](https://img.shields.io/github/stars/{slug})]({REPO_URL})",
+        f"[![stable](https://github.com/{slug}/actions/workflows/ci.yml/badge.svg?branch=main)]({ACTIONS_URL})",
+        f"[![dev](https://github.com/{slug}/actions/workflows/ci.yml/badge.svg?branch=dev)]({ACTIONS_URL})",
     ]
     return BADGES_START + "\n" + "\n".join(lines) + "\n" + BADGES_END
 

@@ -7,6 +7,8 @@
 [![python](https://img.shields.io/badge/python-3.14-3776AB)](https://github.com/elenanight/windfall)
 [![last commit](https://img.shields.io/github/last-commit/elenanight/windfall)](https://github.com/elenanight/windfall)
 [![stars](https://img.shields.io/github/stars/elenanight/windfall)](https://github.com/elenanight/windfall)
+[![stable](https://github.com/elenanight/windfall/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/elenanight/windfall/actions)
+[![dev](https://github.com/elenanight/windfall/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/elenanight/windfall/actions)
 <!-- badges:end -->
 
 A class-based TUI compositor and engine for building terminal apps and games
