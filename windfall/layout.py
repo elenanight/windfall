@@ -94,7 +94,16 @@ class Column(Container):
 
 
 class Row(Container):
-    """Places children left-to-right, each at its natural width."""
+    """Places children left-to-right, each at its natural width.
+
+    With ``fill=True`` the extra width is shared equally across children
+    so the row spans the available rect; the default keeps natural widths
+    for developers who do not want their widgets stretched.
+    """
+
+    def __init__(self, fill: bool = False) -> None:
+        super().__init__()
+        self._fill = fill
 
     def size(self) -> Vec2:
         width = sum(child.size().x for child in self.children)
@@ -102,6 +111,19 @@ class Row(Container):
         return Vec2(width, height)
 
     def draw(self, canvas, rect: Rect) -> None:
+        if not self._fill or not self.children:
+            self._draw_natural(canvas, rect)
+            return
+        natural = [child.size() for child in self.children]
+        extra = max(0, rect.width - sum(size.x for size in natural))
+        share, remainder = divmod(extra, len(self.children))
+        x = rect.x
+        for index, child in enumerate(self.children):
+            width = natural[index].x + share + (1 if index < remainder else 0)
+            child.draw(canvas, Rect(x, rect.y, width, rect.height))
+            x += width
+
+    def _draw_natural(self, canvas, rect: Rect) -> None:
         x = rect.x
         for child in self.children:
             child_size = child.size()

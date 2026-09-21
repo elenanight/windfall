@@ -71,7 +71,7 @@ def build(engine: Engine) -> Scene:
     actions_center = Center()
     actions_center.add(actions)
     body.add(actions_center)
-    body.add(Label("A add · E edit · Q quit · arrows move · Enter activate", align="center"))
+    body.add(Label("A add · E edit · R remove · Q quit · arrows move · Enter activate", align="center"))
     dialog = Panel(body, title="@@title@@", padding=0)
     content_main = Column()
     content_main.add(Label("Build your app here.", align="center"))
@@ -107,6 +107,7 @@ def build(engine: Engine) -> Scene:
     hotkeys = [
         Hotkey("a", on_press=lambda: focus_widget(add)),
         Hotkey("e", on_press=focus_first_action),
+        Hotkey("r", on_press=lambda: focus_widget(remove)),
         Hotkey("q", on_press=engine.stop),
     ]
     for hotkey in hotkeys:
@@ -127,7 +128,7 @@ def build(engine: Engine) -> Scene:
                 on_cancel=close_editor,
             )
         elif kind == "widget":
-            editor = AddWidget(on_add=save_widget, on_cancel=close_editor)
+            editor = AddWidget(on_add=save_widget, on_cancel=close_editor, fits=space_reason)
         elif kind == "remove":
             entries = [f"{spec.get('type')} · {spec.get('placement')}" for spec, _, _ in placed]
             editor = RemoveWidget(entries, on_remove=remove_widget, on_cancel=close_editor)
@@ -169,29 +170,39 @@ def build(engine: Engine) -> Scene:
 
     placed: list = []  # (spec, parent, node) records backing removal
 
-    def place_widget(kind: str, placement: str):
+    def place_widget(kind: str, placement: str, stretch: bool = False):
         """Drop an assembled widget into the content section at a placement."""
         widget = engine.make_widget(kind)
-        if placement == "sidebar":
-            content_aside.add(widget)
-            return content_aside, widget
+        target = content_aside if placement == "sidebar" else content_main
+        if stretch or placement in ("sidebar", "full"):
+            target.add(widget)
+            return target, widget
         if placement == "left":
             slot = Row()
             slot.add(widget)
         elif placement == "center":
             slot = Center()
             slot.add(widget)
-        elif placement == "right":
+        else:
             slot = Center(align="right")
             slot.add(widget)
-        else:
-            slot = widget
-        content_main.add(slot)
-        return content_main, slot
+        target.add(slot)
+        return target, slot
 
-    def save_widget(kind: str, placement: str) -> None:
-        parent, node = place_widget(kind, placement)
-        spec = {"type": kind, "placement": placement}
+    def space_reason(kind: str, placement: str, stretch: bool) -> str | None:
+        """Refuse placement when the widget is wider than the content area."""
+        if stretch:
+            return None
+        widget = engine.make_widget(kind)
+        target = content_aside if placement == "sidebar" else content_main
+        width = max((child.size().x for child in target.children), default=0)
+        if widget.size().x > width:
+            return f"No room: {kind} needs {widget.size().x} cols, content has {width}"
+        return None
+
+    def save_widget(kind: str, placement: str, stretch: bool) -> None:
+        parent, node = place_widget(kind, placement, stretch)
+        spec = {"type": kind, "placement": placement, "stretch": stretch}
         placed.append((spec, parent, node))
         cfg.set("widgets", [record[0] for record in placed]).save()
         close_editor()
@@ -205,8 +216,9 @@ def build(engine: Engine) -> Scene:
     for spec in cfg.get("widgets", []):
         kind = spec.get("type", "Label")
         placement = spec.get("placement", "full")
-        parent, node = place_widget(kind, placement)
-        placed.append(({"type": kind, "placement": placement}, parent, node))
+        stretch = spec.get("stretch", False)
+        parent, node = place_widget(kind, placement, stretch)
+        placed.append(({"type": kind, "placement": placement, "stretch": stretch}, parent, node))
 
     return scene
 
