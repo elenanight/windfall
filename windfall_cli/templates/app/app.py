@@ -11,6 +11,7 @@ from windfall import (
     HeaderEditor,
     Label,
     Panel,
+    Row,
     Scene,
     Stack,
 )
@@ -31,14 +32,18 @@ def build(engine: Engine) -> Scene:
     button = Button("Press Enter", on_activate=lambda: print("hi from @@package@@!"))
     button.focus(True)
     edit = Button("Edit header bar", on_activate=lambda: open_editor())
+    quit = Button("Quit", on_activate=engine.stop)
     body = Column()
     center = Center()
     center.add(button)
     body.add(center)
-    body.add(Label("Enter: activate · arrows: move · Ctrl+C: quit", align="center"))
-    edit_center = Center()
-    edit_center.add(edit)
-    body.add(edit_center)
+    body.add(Label("Enter: activate · arrows: move · Quit button or Ctrl+C: quit", align="center"))
+    actions = Row()
+    actions.add(edit)
+    actions.add(quit)
+    actions_center = Center()
+    actions_center.add(actions)
+    body.add(actions_center)
     dialog = Panel(body, title="@@title@@", padding=1)
     dialog_center = Center()
     dialog_center.add(dialog)

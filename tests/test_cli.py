@@ -217,6 +217,19 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert "hello from myapp!" in config_path.read_text(encoding="utf-8")
     assert _find_all(scene.root, HeaderEditor) == []
 
-    again = module.build(Engine())
+    again_engine = Engine()
+    again = module.build(again_engine)
     assert _find_all(again.root, HeaderEditor) == []
     assert any("hello from myapp!" in line for line in Compositor().text(again))
+
+    quit = next(
+        w
+        for w in focusables(again.root)
+        if isinstance(w, Button) and w.on_activate == again_engine.stop
+    )
+    for widget in focusables(again.root):
+        widget.focus(False)
+    again_engine.running = True
+    quit.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    assert again_engine.running is False
