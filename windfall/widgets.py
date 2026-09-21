@@ -60,6 +60,36 @@ class Header(Component):
         self._box = Box(self._label, border_style=Style(fg=self._border), padding=0)
 
 
+class Footer(Component):
+    """A full-width bar for the bottom of the screen, mirroring ``Header``."""
+
+    def __init__(self, text: str = "", *, border: str | None = "cyan", fg: str | None = "white") -> None:
+        super().__init__()
+        self._text = text
+        self._border = border
+        self._fg = fg
+        self._label = Label(text, style=Style(fg=fg), align="center")
+        self._box = Box(self._label, border_style=Style(fg=border), padding=0)
+
+    def size(self) -> Vec2:
+        return self._box.size()
+
+    def draw(self, canvas, rect: Rect) -> None:
+        self._box.draw(canvas, rect)
+
+    def set_text(self, text: str) -> None:
+        self._text = text
+        self._label.set_text(text)
+
+    def set_colors(self, *, border: str | None = None, fg: str | None = None) -> None:
+        if border is not None:
+            self._border = border
+        if fg is not None:
+            self._fg = fg
+        self._label = Label(self._text, style=Style(fg=self._fg), align="center")
+        self._box = Box(self._label, border_style=Style(fg=self._border), padding=0)
+
+
 class Button(Component):
     """A focusable, activating, bordered button."""
 
@@ -316,6 +346,56 @@ class HeaderEditor(Panel):
         self._fgs.select(_index_of(self._text_choices, fg))
         body = Column()
         body.add(Label("Header text:"))
+        body.add(self._field)
+        body.add(Label("Border color:"))
+        body.add(self._borders)
+        body.add(Label("Text color:"))
+        body.add(self._fgs)
+        actions = Row()
+        actions.add(Button("Save", on_activate=self._commit))
+        actions.add(Button("Cancel", on_activate=self._abort))
+        body.add(actions)
+        super().__init__(body, title=title, padding=1)
+
+    def _commit(self) -> None:
+        text = self._field.value.strip() or self._text
+        border = self._border_choices[self._borders.selection]
+        fg = self._text_choices[self._fgs.selection]
+        if self.on_save is not None:
+            self.on_save(text, border, fg)
+
+    def _abort(self) -> None:
+        if self.on_cancel is not None:
+            self.on_cancel()
+
+
+class FooterEditor(Panel):
+    """In-place editor panel for footer text and colors, mirroring ``HeaderEditor``."""
+
+    def __init__(
+        self,
+        *,
+        text: str = "",
+        border: str = "cyan",
+        fg: str = "white",
+        border_choices=None,
+        text_choices=None,
+        on_save=None,
+        on_cancel=None,
+        title: str = "Edit footer bar",
+    ) -> None:
+        self._text = text
+        self._border_choices = list(border_choices or BORDER_COLORS)
+        self._text_choices = list(text_choices or TEXT_COLORS)
+        self.on_save = on_save
+        self.on_cancel = on_cancel
+        self._field = TextInput(text)
+        self._borders = ListView(items=self._border_choices)
+        self._borders.select(_index_of(self._border_choices, border))
+        self._fgs = ListView(items=self._text_choices)
+        self._fgs.select(_index_of(self._text_choices, fg))
+        body = Column()
+        body.add(Label("Footer text:"))
         body.add(self._field)
         body.add(Label("Border color:"))
         body.add(self._borders)

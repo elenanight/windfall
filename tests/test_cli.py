@@ -192,7 +192,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     from windfall import Compositor, Engine
     from windfall.events import ACTIVATE, Event
     from windfall.scene import focusables
-    from windfall.widgets import Button, HeaderEditor
+    from windfall.widgets import Button, FooterEditor, HeaderEditor
 
     base = tmp_path / "work"
     assert cli.main(["new", "myapp", "--dest", str(base)]) == 0
@@ -233,3 +233,25 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     quit.focus(True)
     assert again.handle(Event(ACTIVATE)) is True
     assert again_engine.running is False
+
+    buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
+    _, _, edit_footer, _ = buttons
+    for widget in focusables(again.root):
+        widget.focus(False)
+    edit_footer.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    footers = _find_all(again.root, FooterEditor)
+    assert len(footers) == 1  # footer editor opens in place
+
+    save, _ = [w for w in focusables(footers[0]) if isinstance(w, Button)]
+    for widget in focusables(again.root):
+        widget.focus(False)
+    save.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    assert "built with windfall" in config_path.read_text(encoding="utf-8")
+    assert _find_all(again.root, FooterEditor) == []
+
+    final = module.build(Engine())
+    assert _find_all(final.root, FooterEditor) == []
+    assert _find_all(final.root, HeaderEditor) == []
+    assert any("built with windfall" in line for line in Compositor().text(final))

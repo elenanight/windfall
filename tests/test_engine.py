@@ -9,7 +9,7 @@ from windfall.engine import Engine
 from windfall.events import ACTIVATE, QUIT, Event
 from windfall.input import InputReader
 from windfall.scene import Scene
-from windfall.widgets import Button, Header, TextInput
+from windfall.widgets import Button, Footer, Header, TextInput
 
 
 class FakeLive:
@@ -120,3 +120,10 @@ def test_make_header_assembles_widget_from_primitives() -> None:
     header = engine.make_header("hi", border="red", fg="green")
     assert isinstance(header, Header)
     assert header.size() == Header("hi").size()
+
+
+def test_make_footer_assembles_widget_from_primitives() -> None:
+    engine = Engine()
+    footer = engine.make_footer("bye", border="red", fg="green")
+    assert isinstance(footer, Footer)
+    assert footer.size() == Footer("bye").size()

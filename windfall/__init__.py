@@ -39,7 +39,17 @@ from windfall.layout import Center, Column, Container, Row, Stack
 from windfall.primitives import Border, Box, Divider, Primitive, Spacer, Text
 from windfall.scene import Frame, FrameStack, Scene
 from windfall.style import Style, Theme
-from windfall.widgets import Button, Header, HeaderEditor, Label, ListView, Panel, TextInput
+from windfall.widgets import (
+    Button,
+    Footer,
+    FooterEditor,
+    Header,
+    HeaderEditor,
+    Label,
+    ListView,
+    Panel,
+    TextInput,
+)
 
 __version__ = "0.2.1"
 
@@ -69,6 +79,8 @@ __all__ = [
     "Engine",
     "Event",
     "EventQueue",
+    "Footer",
+    "FooterEditor",
     "Frame",
     "FrameStack",
     "Header",

@@ -8,6 +8,7 @@ from windfall import (
     Column,
     Config,
     Engine,
+    FooterEditor,
     HeaderEditor,
     Label,
     Panel,
@@ -22,6 +23,9 @@ DEFAULTS = {
     "header": "hello from @@package@@!",
     "border": "cyan",
     "fg": "bright_white",
+    "footer": "built with windfall",
+    "footer_border": "cyan",
+    "footer_fg": "white",
 }
 
 
@@ -29,9 +33,13 @@ def build(engine: Engine) -> Scene:
     """Assemble the app scene, opening the header editor on first run."""
     cfg = Config.load(CONFIG_PATH, defaults=DEFAULTS)
     header = engine.make_header(cfg.get("header"), border=cfg.get("border"), fg=cfg.get("fg"))
+    footer = engine.make_footer(
+        cfg.get("footer"), border=cfg.get("footer_border"), fg=cfg.get("footer_fg")
+    )
     button = Button("Press Enter", on_activate=lambda: print("hi from @@package@@!"))
     button.focus(True)
-    edit = Button("Edit header bar", on_activate=lambda: open_editor())
+    edit_header = Button("Edit header bar", on_activate=lambda: open_editor("header"))
+    edit_footer = Button("Edit footer bar", on_activate=lambda: open_editor("footer"))
     quit = Button("Quit", on_activate=engine.stop)
     body = Column()
     center = Center()
@@ -39,7 +47,8 @@ def build(engine: Engine) -> Scene:
     body.add(center)
     body.add(Label("Enter: activate · arrows: move · Quit button: quit", align="center"))
     actions = Row()
-    actions.add(edit)
+    actions.add(edit_header)
+    actions.add(edit_footer)
     actions.add(quit)
     actions_center = Center()
     actions_center.add(actions)
@@ -50,23 +59,33 @@ def build(engine: Engine) -> Scene:
     main = Column()
     main.add(header)
     main.add(dialog_center)
+    main.add(footer)
     root = Stack()
     root.add(main)
     scene = Scene(name="@@package@@", root=root)
 
     layer = None
 
-    def open_editor() -> None:
+    def open_editor(kind: str) -> None:
         nonlocal layer
         if layer is not None:
-            return
-        editor = HeaderEditor(
-            text=cfg.get("header"),
-            border=cfg.get("border"),
-            fg=cfg.get("fg"),
-            on_save=save_header,
-            on_cancel=close_editor,
-        )
+            close_editor()
+        if kind == "footer":
+            editor = FooterEditor(
+                text=cfg.get("footer"),
+                border=cfg.get("footer_border"),
+                fg=cfg.get("footer_fg"),
+                on_save=save_footer,
+                on_cancel=close_editor,
+            )
+        else:
+            editor = HeaderEditor(
+                text=cfg.get("header"),
+                border=cfg.get("border"),
+                fg=cfg.get("fg"),
+                on_save=save_header,
+                on_cancel=close_editor,
+            )
         # Left-docked overlay: the row draws the editor at the left edge
         # while the app body shows through on the right.
         layer = Row()
@@ -88,8 +107,14 @@ def build(engine: Engine) -> Scene:
         header.set_colors(border=border, fg=fg)
         close_editor()
 
+    def save_footer(text: str, border: str, fg: str) -> None:
+        cfg.set("footer", text).set("footer_border", border).set("footer_fg", fg).save()
+        footer.set_text(text)
+        footer.set_colors(border=border, fg=fg)
+        close_editor()
+
     if not CONFIG_PATH.exists():
-        open_editor()
+        open_editor("header")
     return scene
 
 

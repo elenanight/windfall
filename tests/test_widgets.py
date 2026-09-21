@@ -11,6 +11,8 @@ from windfall.widgets import (
     BORDER_COLORS,
     TEXT_COLORS,
     Button,
+    Footer,
+    FooterEditor,
     Header,
     HeaderEditor,
     Label,
@@ -325,3 +327,64 @@ class TestHeaderEditor:
         save.focus(True)
         _hosted(editor).handle(Event(ACTIVATE))
         assert saved[0][0] == "Hi"
+
+
+class TestFooter:
+    def test_not_focusable(self) -> None:
+        assert Footer("hi").focusable is False
+
+    def test_size_wraps_label(self) -> None:
+        assert Footer("hi").size() == Vec2(4, 3)
+
+    def test_draw_frames_centered_label(self) -> None:
+        assert render(Footer("hi")) == [
+            "┌──┐",
+            "│hi│",
+            "└──┘",
+        ]
+
+    def test_set_text_and_colors(self) -> None:
+        footer = Footer("aa")
+        footer.set_text("b")
+        footer.set_colors(border="blue", fg="yellow")
+        assert footer.size() == Vec2(3, 3)
+        assert render(footer) == [
+            "┌─┐",
+            "│b│",
+            "└─┘",
+        ]
+
+
+class TestFooterEditor:
+    def test_preselects_given_colors(self) -> None:
+        editor = FooterEditor(text="Bye", border="magenta", fg="yellow")
+        views = [w for w in focusables(editor) if isinstance(w, ListView)]
+        assert views[0].selection == BORDER_COLORS.index("magenta")
+        assert views[1].selection == TEXT_COLORS.index("yellow")
+
+    def test_save_delivers_text_and_colors(self) -> None:
+        saved: list[tuple] = []
+        editor = FooterEditor(
+            text="Bye",
+            border="magenta",
+            fg="yellow",
+            on_save=lambda text, border, fg: saved.append((text, border, fg)),
+        )
+        save, _ = _editor_buttons(editor)
+        save.focus(True)
+        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert saved == [("Bye", "magenta", "yellow")]
+
+    def test_cancel_calls_on_cancel_only(self) -> None:
+        saved: list[tuple] = []
+        cancelled: list[bool] = []
+        editor = FooterEditor(
+            text="Bye",
+            on_save=lambda text, border, fg: saved.append((text, border, fg)),
+            on_cancel=lambda: cancelled.append(True),
+        )
+        _, cancel = _editor_buttons(editor)
+        cancel.focus(True)
+        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert cancelled == [True]
+        assert saved == []
