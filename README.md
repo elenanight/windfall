@@ -115,6 +115,8 @@ Point it elsewhere with `windfall menu --dir DIR` (it scans
 - **Delete** — asks inline first (`Yes`/`No`); only `Yes` removes it.
 - **Archive** — moves the app to `project/.archive/<name>-<timestamp>/`.
 - **Quit** — leaves with a farewell line once the terminal restores.
+- **Hotkeys** — `N` new, `O` open, `D` delete, `A` archive, `X` quit.
+  Arrow keys move focus, Enter activates.
 
 With no projects yet, the list says so and the status line points at
 `New`. Every action narrates itself in the status line, and the sidebar

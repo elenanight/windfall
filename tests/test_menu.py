@@ -10,7 +10,7 @@ import pytest
 from windfall import Engine
 from windfall.events import ACTIVATE, KEY, Event
 from windfall.scene import focusables
-from windfall.widgets import Button, ListView, TextInput
+from windfall.widgets import Button, Hotkey, ListView, TextInput
 from windfall_cli import cli
 from windfall_cli import menu as menu_module
 
@@ -28,6 +28,18 @@ def _buttons(scene) -> list[Button]:
 
 def _key(char: str) -> Event:
     return Event(KEY, {"key": char})
+
+
+def _find_all(node, kind: type) -> list:
+    """Walk a component tree the way event delivery does (children/box/child)."""
+    found = [node] if isinstance(node, kind) else []
+    for attr in ("children", "_box", "_child"):
+        value = getattr(node, attr, None)
+        if value is None:
+            continue
+        for kid in value if isinstance(value, list) else [value]:
+            found.extend(_find_all(kid, kind))
+    return found
 
 
 def _stub_run(monkeypatch: pytest.MonkeyPatch, calls: list) -> None:
@@ -156,6 +168,22 @@ def test_menu_help_lists_subcommand(capsys) -> None:
         cli.main(["menu", "--help"])
     assert exc.value.code == 0
     assert "menu" in capsys.readouterr().out
+
+
+def test_hotkeys_focus_buttons_and_quit(tmp_path: Path) -> None:
+    _make_project(tmp_path, "myapp")
+    engine = Engine()
+    scene = menu_module.build_menu(engine, tmp_path)
+    assert len(_find_all(scene.root, Hotkey)) == 5
+    buttons = [w for w in focusables(scene.root) if isinstance(w, Button)]
+    for key, index in [("n", 0), ("o", 1), ("d", 2), ("a", 3)]:
+        for widget in focusables(scene.root):
+            widget.focus(False)
+        assert scene.handle(Event(KEY, {"key": key})) is True
+        assert buttons[index].focused is True
+    engine.running = True
+    assert scene.handle(Event(KEY, {"key": "x"})) is True
+    assert engine.running is False
 
 
 def test_farewell_prints_shutdown_line(capsys) -> None:
