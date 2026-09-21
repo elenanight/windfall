@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - None yet.
 
-## [0.2.3] - 2026-09-21
+## [0.2.3] - 2026-09-20
 
 ### Added
 
@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Center` layout accepts left/center/right alignment; app menu is
   full-width above the header with a content section below.
 
-## [0.2.2] - 2026-09-21
+## [0.2.2] - 2026-09-20
 
 ### Added
 
@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Focused button and text-input text paints with the highlight background
   so focus stays visible at any padding.
 
-## [0.2.1] - 2026-09-21
+## [0.2.1] - 2026-09-20
 
 ### Added
 
@@ -61,7 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Header editor overlay docks to the left edge instead of the center.
 - Quit hint no longer advertises Ctrl+C.
 
-## [0.2.0] - 2026-09-21
+## [0.2.0] - 2026-09-20
 
 ### Added
 
