@@ -36,7 +36,7 @@ from windfall.events import (
 from windfall.geom import Rect, Vec2
 from windfall.input import InputReader, Keymap
 from windfall.layout import Center, Column, Container, Row, Stack
-from windfall.primitives import Border, Box, Divider, Primitive, Spacer, Text
+from windfall.primitives import Border, Box, Connector, Divider, Primitive, Spacer, Text
 from windfall.scene import Frame, FrameStack, Scene
 from windfall.style import Style, Theme
 from windfall.widgets import (
@@ -74,6 +74,7 @@ __all__ = [
     "Component",
     "Compositor",
     "Config",
+    "Connector",
     "Container",
     "Divider",
     "Engine",

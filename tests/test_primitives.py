@@ -6,7 +6,7 @@ import pytest
 
 from windfall.canvas import Canvas
 from windfall.geom import Rect, Vec2
-from windfall.primitives import Border, Box, Divider, Spacer, Text
+from windfall.primitives import Border, Box, Connector, Divider, Spacer, Text
 from windfall.style import Style
 
 
@@ -52,6 +52,26 @@ def test_divider_size_and_draw() -> None:
     canvas = Canvas(5, 1)
     divider.draw(canvas, Rect(0, 0, 5, 1))
     assert canvas.text() == ["─────"]
+
+
+def test_connector_size_and_centered_shaft() -> None:
+    assert Connector().size() == Vec2(1, 1)
+    assert Connector(height=3).size() == Vec2(1, 3)
+    canvas = Canvas(5, 2)
+    Connector(height=2).draw(canvas, Rect(0, 0, 5, 2))
+    assert canvas.text() == ["  │  ", "  │  "]
+
+
+def test_connector_states_map_to_expected_colors() -> None:
+    assert Connector("available")._style == Style(fg="green")
+    assert Connector("unavailable")._style == Style(fg="red")
+    assert Connector("unlockable")._style == Style(fg="blue")
+    assert Connector("active")._style == Style(fg="dark_orange")
+
+
+def test_connector_rejects_unknown_state() -> None:
+    with pytest.raises(ValueError):
+        Connector("purple")
 
 
 def test_border_size_is_zero() -> None:

@@ -7,6 +7,7 @@ from windfall import (
     Center,
     Column,
     Config,
+    Connector,
     Engine,
     FooterEditor,
     HeaderEditor,
@@ -45,7 +46,7 @@ def build(engine: Engine) -> Scene:
     center = Center()
     center.add(button)
     body.add(center)
-    body.add(Label("Enter: activate · arrows: move · Quit button: quit", align="center"))
+    body.add(Connector("available"))
     actions = Row()
     actions.add(edit_header)
     actions.add(edit_footer)
@@ -53,6 +54,7 @@ def build(engine: Engine) -> Scene:
     actions_center = Center()
     actions_center.add(actions)
     body.add(actions_center)
+    body.add(Label("Enter: activate · arrows: move · Quit button: quit", align="center"))
     dialog = Panel(body, title="@@title@@", padding=1)
     dialog_center = Center(align="right")
     dialog_center.add(dialog)

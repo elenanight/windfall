@@ -76,6 +76,42 @@ class Divider(Primitive):
         canvas.fill(rect.x, rect.y, rect.width, min(1, rect.height), self._char, self._style)
 
 
+_CONNECTOR_STATES = {
+    "available": "green",
+    "unavailable": "red",
+    "unlockable": "blue",
+    "active": "dark_orange",
+}
+
+
+class Connector(Primitive):
+    """A vertical shaft linking stacked boxes, colored by node state.
+
+    States are ``"available"`` (green), ``"unavailable"`` (red),
+    ``"unlockable"`` (blue), and ``"active"`` (``"dark_orange"`` — plain
+    ``"orange"`` is not a valid terminal color). The shaft centers itself
+    within the given rect.
+    """
+
+    def __init__(self, state: str = "available", height: int = 1) -> None:
+        if state not in _CONNECTOR_STATES:
+            raise ValueError(f"state must be one of {sorted(_CONNECTOR_STATES)}, got {state!r}")
+        self.state = state
+        self._style = Style(fg=_CONNECTOR_STATES[state])
+        self._height = max(0, height)
+
+    def size(self) -> Vec2:
+        return Vec2(1, self._height)
+
+    def draw(self, canvas, rect: Rect) -> None:
+        if rect.width <= 0 or self._height <= 0:
+            return
+        x = rect.x + rect.width // 2
+        bottom = min(rect.y + self._height, rect.y + rect.height)
+        for y in range(rect.y, bottom):
+            canvas.write("│", x, y, self._style)
+
+
 class Border(Primitive):
     """A box outline drawn around the edges of a rect."""
 

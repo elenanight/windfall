@@ -191,6 +191,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
 
     from windfall import Compositor, Engine
     from windfall.events import ACTIVATE, Event
+    from windfall.primitives import Connector
     from windfall.scene import focusables
     from windfall.widgets import Button, FooterEditor, HeaderEditor
 
@@ -229,6 +230,9 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     again = module.build(again_engine)
     assert _find_all(again.root, HeaderEditor) == []
     assert any("hello from myapp!" in line for line in Compositor().text(again))
+    shafts = _find_all(again.root, Connector)
+    assert len(shafts) == 1
+    assert shafts[0].state == "available"
 
     quit = next(
         w
