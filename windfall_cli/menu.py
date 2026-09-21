@@ -7,8 +7,10 @@ confirmation inline; archiving moves the app aside under ``.archive``.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
+import termios
 import time
 from pathlib import Path
 
@@ -152,6 +154,47 @@ def build_menu(engine: Engine, base=None) -> Scene:
             widget.focus(False)
         yes.focus(True)
 
+    def _detach_stdin() -> int | None:
+        """Hand the terminal to the child app exclusively.
+
+        Points our stdin at /dev/null so our blocked pump thread exits on
+        EOF instead of racing the child's reader for keystrokes. Returns a
+        dup of the real terminal that the child must inherit explicitly via
+        ``stdin=`` (it must NOT rely on inheriting fd 0). Returns None
+        when stdin is not a terminal.
+        """
+        try:
+            if not os.isatty(0):
+                return None
+            saved = os.dup(0)
+        except OSError:
+            return None
+        try:
+            null = os.open(os.devnull, os.O_RDONLY)
+        except OSError:
+            os.close(saved)
+            return None
+        try:
+            os.dup2(null, 0)
+        finally:
+            os.close(null)
+        engine.input.close()
+        return saved
+
+    def _restore_stdin(saved: int | None) -> None:
+        """Take the terminal back: restore stdin, flush type-ahead, resume."""
+        if saved is None:
+            return
+        try:
+            os.dup2(saved, 0)
+        finally:
+            os.close(saved)
+        try:
+            termios.tcflush(0, termios.TCIFLUSH)
+        except OSError:
+            pass
+        engine.input.open()
+
     def do_open() -> None:
         restore_actions()
         target = selected()
@@ -159,11 +202,19 @@ def build_menu(engine: Engine, base=None) -> Scene:
             status.set_text("Nothing to open.")
             return
         print(f"Starting {target.name} ...")
+        saved = _detach_stdin()
         try:
-            subprocess.run(["uv", "run", "python", "app.py"], cwd=target, check=False)
+            proc = subprocess.Popen(
+                ["uv", "run", "python", "app.py"],
+                stdin=saved if saved is not None else None,
+                cwd=target,
+            )
+            proc.wait()
         except FileNotFoundError:
             status.set_text("`uv` not found; start the app manually.")
             return
+        finally:
+            _restore_stdin(saved)
         refresh(f"Back from {target.name}.")
 
     def request_delete() -> None:

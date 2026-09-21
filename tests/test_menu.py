@@ -31,11 +31,11 @@ def _key(char: str) -> Event:
 
 
 def _stub_run(monkeypatch: pytest.MonkeyPatch, calls: list) -> None:
-    def fake_run(*args, **kwargs):
+    def fake_popen(*args, **kwargs):
         calls.append((args, kwargs))
-        return SimpleNamespace(returncode=0)
+        return SimpleNamespace(wait=lambda: 0)
 
-    monkeypatch.setattr(menu_module, "subprocess", SimpleNamespace(run=fake_run))
+    monkeypatch.setattr(menu_module, "subprocess", SimpleNamespace(Popen=fake_popen))
 
 
 def test_find_projects_lists_sorted_app_dirs(tmp_path: Path) -> None:
