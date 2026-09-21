@@ -37,7 +37,7 @@ def build(engine: Engine) -> Scene:
     center = Center()
     center.add(button)
     body.add(center)
-    body.add(Label("Enter: activate · arrows: move · Quit button or Ctrl+C: quit", align="center"))
+    body.add(Label("Enter: activate · arrows: move · Quit button: quit", align="center"))
     actions = Row()
     actions.add(edit)
     actions.add(quit)
@@ -67,7 +67,9 @@ def build(engine: Engine) -> Scene:
             on_save=save_header,
             on_cancel=close_editor,
         )
-        layer = Center()
+        # Left-docked overlay: the row draws the editor at the left edge
+        # while the app body shows through on the right.
+        layer = Row()
         layer.add(editor)
         root.add(layer)
         scene.set_focus_scope(editor)
