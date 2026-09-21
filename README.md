@@ -6,7 +6,9 @@
 [![dev](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=dev&label=dev)](https://github.com/elenanight/windfall/actions)
 [![license](https://img.shields.io/badge/license-MIT-green)](https://github.com/elenanight/windfall/blob/main/LICENSE)
 [![changelog](https://img.shields.io/static/v1?label=&message=changelog&color=orange)](https://github.com/elenanight/windfall/blob/main/CHANGELOG.md)
+
 [![python](https://img.shields.io/badge/python-3.14-3776AB)](https://github.com/elenanight/windfall)
+[![dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-green)](https://github.com/elenanight/windfall/security/dependabot)
 [![last commit](https://img.shields.io/github/last-commit/elenanight/windfall)](https://github.com/elenanight/windfall)
 <!-- badges:end -->
 

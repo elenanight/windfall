@@ -31,6 +31,7 @@ REPO_URL = "https://github.com/elenanight/windfall"
 LICENSE_URL = REPO_URL + "/blob/main/LICENSE"
 CHANGELOG_URL = REPO_URL + "/blob/main/CHANGELOG.md"
 ACTIONS_URL = REPO_URL + "/actions"
+DEPENDABOT_URL = REPO_URL + "/security/dependabot"
 
 
 def project_version(path: Path | None = None) -> str:
@@ -40,17 +41,25 @@ def project_version(path: Path | None = None) -> str:
 
 
 def build_badges(slug: str, version: str) -> str:
-    """Render the badge block for a repo slug and version."""
-    lines = [
+    """Render the badge block for a repo slug and version.
+
+    Badges flow left to right over two lines: identity and channel health
+    first, then toolchain metadata with python next to dependencies.
+    """
+    first = [
         f"[![version](https://img.shields.io/badge/version-{version}-blue)]({REPO_URL})",
         f"[![stable](https://img.shields.io/github/actions/workflow/status/{slug}/ci.yml?branch=main&label=stable)]({ACTIONS_URL})",
         f"[![dev](https://img.shields.io/github/actions/workflow/status/{slug}/ci.yml?branch=dev&label=dev)]({ACTIONS_URL})",
         f"[![license](https://img.shields.io/badge/license-MIT-green)]({LICENSE_URL})",
         f"[![changelog](https://img.shields.io/static/v1?label=&message=changelog&color=orange)]({CHANGELOG_URL})",
+    ]
+    second = [
         f"[![python](https://img.shields.io/badge/python-3.14-3776AB)]({REPO_URL})",
+        f"[![dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-green)]({DEPENDABOT_URL})",
         f"[![last commit](https://img.shields.io/github/last-commit/{slug})]({REPO_URL})",
     ]
-    return BADGES_START + "\n" + "\n".join(lines) + "\n" + BADGES_END
+    body = "\n".join(first) + "\n\n" + "\n".join(second)
+    return BADGES_START + "\n" + body + "\n" + BADGES_END
 
 
 def update_readme(version: str, slug: str, path: Path | None = None) -> bool:
