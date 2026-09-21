@@ -193,7 +193,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     from windfall.events import ACTIVATE, KEY, Event
     from windfall.primitives import Connector
     from windfall.scene import focusables
-    from windfall.widgets import Button, FooterEditor, HeaderEditor, Hotkey, TextInput
+    from windfall.widgets import AddWidget, Button, FooterEditor, HeaderEditor, Hotkey, TextInput
 
     base = tmp_path / "work"
     assert cli.main(["new", "myapp", "--dest", str(base)]) == 0
@@ -210,7 +210,11 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
 
     buttons = [w for w in focusables(scene.root) if isinstance(w, Button)]
     assert scene.handle(Event(KEY, {"key": "e"})) is True
-    assert buttons[1].focused is True  # E focuses Edit header, skipping Add widget
+    assert buttons[0].focused is True  # E focuses Add widget, now actionable
+
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    _, edit_header, _, _ = buttons
 
     for widget in focusables(scene.root):
         widget.focus(False)
@@ -285,9 +289,28 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert "built with windfall" in config_path.read_text(encoding="utf-8")
     assert _find_all(again.root, FooterEditor) == []
 
+    buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
+    add, _, _, _ = buttons
+    for widget in focusables(again.root):
+        widget.focus(False)
+    add.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    adders = _find_all(again.root, AddWidget)
+    assert len(adders) == 1  # palette opens in place
+
+    save, _ = [w for w in focusables(adders[0]) if isinstance(w, Button)]
+    for widget in focusables(again.root):
+        widget.focus(False)
+    save.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    assert '"type": "Label"' in config_path.read_text(encoding="utf-8")
+    assert _find_all(again.root, AddWidget) == []
+
     final = module.build(Engine())
     assert _find_all(final.root, FooterEditor) == []
     assert _find_all(final.root, HeaderEditor) == []
+    assert _find_all(final.root, AddWidget) == []
     rendered = Compositor().text(final)
     assert any("built with windfall" in line for line in rendered)
     assert any("Build your app here." in line for line in rendered)
+    assert any("New label" in line for line in rendered)

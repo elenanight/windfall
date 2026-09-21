@@ -11,6 +11,7 @@ from windfall.scene import Scene, focusables
 from windfall.widgets import (
     BORDER_COLORS,
     TEXT_COLORS,
+    AddWidget,
     Button,
     Footer,
     FooterEditor,
@@ -428,6 +429,38 @@ class TestFooterEditor:
         shafts = _find_all(FooterEditor(text="Bye"), Connector)
         assert len(shafts) == 3
         assert all(shaft.state == "available" for shaft in shafts)
+
+
+class TestAddWidget:
+    def test_save_delivers_kind_and_placement(self) -> None:
+        added: list[tuple] = []
+        editor = AddWidget(on_add=lambda kind, placement: added.append((kind, placement)))
+        kinds, places = [w for w in focusables(editor) if isinstance(w, ListView)]
+        kinds.focus(True)
+        kinds.handle(move("down"))
+        kinds.handle(move("down"))
+        kinds.focus(False)
+        places.focus(True)
+        for _ in range(4):
+            places.handle(move("down"))
+        places.focus(False)
+        save, _ = _editor_buttons(editor)
+        save.focus(True)
+        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert added == [("TextInput", "sidebar")]
+
+    def test_cancel_calls_on_cancel_only(self) -> None:
+        added: list[tuple] = []
+        cancelled: list[bool] = []
+        editor = AddWidget(
+            on_add=lambda kind, placement: added.append((kind, placement)),
+            on_cancel=lambda: cancelled.append(True),
+        )
+        _, cancel = _editor_buttons(editor)
+        cancel.focus(True)
+        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert cancelled == [True]
+        assert added == []
 
 
 class TestHotkey:

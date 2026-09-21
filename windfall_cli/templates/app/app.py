@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from windfall import (
+    AddWidget,
     Button,
     Center,
     Column,
@@ -29,6 +30,7 @@ DEFAULTS = {
     "footer": "built with windfall",
     "footer_border": "cyan",
     "footer_fg": "white",
+    "widgets": [],
 }
 
 
@@ -39,8 +41,7 @@ def build(engine: Engine) -> Scene:
     footer = engine.make_footer(
         cfg.get("footer"), border=cfg.get("footer_border"), fg=cfg.get("footer_fg")
     )
-    # Hook for later: widget choices + editor plug in here.
-    add = Button("Add widget", on_activate=None, padding=0)
+    add = Button("Add widget", on_activate=lambda: open_editor("widget"), padding=0)
     edit_header = Button("Edit header bar", on_activate=lambda: open_editor("header"), padding=0)
     edit_footer = Button("Edit footer bar", on_activate=lambda: open_editor("footer"), padding=0)
     quit = Button("Quit", on_activate=engine.stop, padding=0)
@@ -58,10 +59,14 @@ def build(engine: Engine) -> Scene:
     body.add(actions_center)
     body.add(Label("A add · E edit · Q quit · arrows move · Enter activate", align="center"))
     dialog = Panel(body, title="@@title@@", padding=0)
-    content_body = Column()
-    content_body.add(Label("Build your app here.", align="center"))
-    content_body.add(Label("Add widgets to the content section in app.py.", align="center"))
-    content = Panel(content_body, title="Content", padding=1)
+    content_main = Column()
+    content_main.add(Label("Build your app here.", align="center"))
+    content_main.add(Label("Add widgets to the content section in app.py.", align="center"))
+    content_aside = Column()
+    content_row = Row()
+    content_row.add(content_main)
+    content_row.add(content_aside)
+    content = Panel(content_row, title="Content", padding=1)
     main = Column()
     main.add(dialog)
     main.add(header)
@@ -107,6 +112,8 @@ def build(engine: Engine) -> Scene:
                 on_save=save_footer,
                 on_cancel=close_editor,
             )
+        elif kind == "widget":
+            editor = AddWidget(on_add=save_widget, on_cancel=close_editor)
         else:
             editor = HeaderEditor(
                 text=cfg.get("header"),
@@ -143,6 +150,35 @@ def build(engine: Engine) -> Scene:
         footer.set_text(text)
         footer.set_colors(border=border, fg=fg)
         close_editor()
+
+    def place_widget(kind: str, placement: str) -> None:
+        """Drop an assembled widget into the content section at a placement."""
+        widget = engine.make_widget(kind)
+        if placement == "sidebar":
+            content_aside.add(widget)
+            return
+        if placement == "left":
+            slot = Row()
+            slot.add(widget)
+        elif placement == "center":
+            slot = Center()
+            slot.add(widget)
+        elif placement == "right":
+            slot = Center(align="right")
+            slot.add(widget)
+        else:
+            slot = widget
+        content_main.add(slot)
+
+    def save_widget(kind: str, placement: str) -> None:
+        place_widget(kind, placement)
+        specs = list(cfg.get("widgets", []))
+        specs.append({"type": kind, "placement": placement})
+        cfg.set("widgets", specs).save()
+        close_editor()
+
+    for spec in cfg.get("widgets", []):
+        place_widget(spec.get("type", "Label"), spec.get("placement", "full"))
 
     return scene
 

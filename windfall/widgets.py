@@ -462,3 +462,52 @@ class Hotkey(Component):
         if self.on_press is not None:
             self.on_press()
         return True
+
+
+WIDGET_KINDS = ("Label", "Button", "TextInput", "ListView", "Divider")
+PLACEMENTS = ("left", "center", "right", "full", "sidebar")
+
+
+class AddWidget(Panel):
+    """Palette panel for dropping a widget into the content section.
+
+    Offers a curated widget list plus a placement list (left, center,
+    right, full width, or sidebar). ``on_add`` receives
+    ``(kind, placement)``; ``on_cancel`` takes no arguments.
+    """
+
+    def __init__(
+        self,
+        *,
+        on_add=None,
+        on_cancel=None,
+        title: str = "Add widget",
+    ) -> None:
+        self._kinds = list(WIDGET_KINDS)
+        self._placements = list(PLACEMENTS)
+        self.on_add = on_add
+        self.on_cancel = on_cancel
+        self._types = ListView(items=self._kinds)
+        self._places = ListView(items=self._placements)
+        body = Column()
+        body.add(Label("Widget:"))
+        body.add(self._types)
+        body.add(Connector("available"))
+        body.add(Label("Placement:"))
+        body.add(self._places)
+        body.add(Connector("available"))
+        actions = Row()
+        actions.add(Button("Add", on_activate=self._commit))
+        actions.add(Button("Cancel", on_activate=self._abort))
+        body.add(actions)
+        super().__init__(body, title=title, padding=1)
+
+    def _commit(self) -> None:
+        kind = self._kinds[self._types.selection]
+        placement = self._placements[self._places.selection]
+        if self.on_add is not None:
+            self.on_add(kind, placement)
+
+    def _abort(self) -> None:
+        if self.on_cancel is not None:
+            self.on_cancel()
