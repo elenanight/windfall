@@ -41,7 +41,7 @@ from windfall.scene import Frame, FrameStack, Scene
 from windfall.style import Style, Theme
 from windfall.widgets import Button, Header, HeaderEditor, Label, ListView, Panel, TextInput
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "ACTIVATE",

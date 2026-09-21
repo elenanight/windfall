@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - None yet.
 
+## [0.2.1] - 2026-09-21
+
+### Added
+
+- Quit button in scaffolded apps, wired to `engine.stop`.
+
+### Changed
+
+- Header editor overlay docks to the left edge instead of the center.
+- Quit hint no longer advertises Ctrl+C.
+
 ## [0.2.0] - 2026-09-21
 
 ### Added
