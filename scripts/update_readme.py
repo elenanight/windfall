@@ -17,6 +17,7 @@ import re
 import subprocess
 import tomllib
 from pathlib import Path
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = ROOT / "pyproject.toml"
@@ -92,7 +93,12 @@ def sync_init_version(version: str, path: Path | None = None) -> bool:
 
 
 def repo_slug() -> str:
-    """Derive the owner/repo slug from the origin remote, if present."""
+    """Derive the owner/repo slug from the origin remote, if present.
+
+    Only exact ``github.com`` hosts with an ``owner/repo`` path are
+    accepted; anything else falls back to the default slug so a hostile
+    remote URL can never leak into generated badge links.
+    """
     try:
         url = subprocess.run(
             ["git", "remote", "get-url", "origin"],
@@ -104,11 +110,23 @@ def repo_slug() -> str:
     except (subprocess.CalledProcessError, FileNotFoundError):
         return DEFAULT_SLUG
     if url.startswith("git@"):
-        url = url.split(":", 1)[-1]
-    slug = url.removesuffix(".git")
-    if "github.com/" in slug:
-        return slug.split("github.com/", 1)[-1].rstrip("/")
-    return slug.rstrip("/")
+        host, _, path = url[4:].partition(":")
+        if host != "github.com":
+            return DEFAULT_SLUG
+        slug = path
+    else:
+        try:
+            parsed = urlparse(url if "://" in url else f"https://{url}")
+        except ValueError:
+            return DEFAULT_SLUG
+        if parsed.hostname != "github.com":
+            return DEFAULT_SLUG
+        slug = parsed.path
+    slug = slug.removesuffix(".git").strip("/")
+    owner, _, repo = slug.partition("/")
+    if not owner or not repo or "/" in repo:
+        return DEFAULT_SLUG
+    return f"{owner}/{repo}"
 
 
 def main(argv: list[str] | None = None) -> int:
