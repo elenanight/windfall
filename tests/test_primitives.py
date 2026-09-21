@@ -74,6 +74,14 @@ def test_connector_rejects_unknown_state() -> None:
         Connector("purple")
 
 
+def test_connector_horizontal_size_and_draw() -> None:
+    shaft = Connector("available", horizontal=True, width=4)
+    assert shaft.size() == Vec2(4, 1)
+    canvas = Canvas(6, 3)
+    shaft.draw(canvas, Rect(0, 0, 6, 3))
+    assert canvas.text() == ["      ", " ──── ", "      "]
+
+
 def test_border_size_is_zero() -> None:
     assert Border().size() == Vec2(0, 0)
 

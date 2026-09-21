@@ -4,7 +4,6 @@ from pathlib import Path
 
 from windfall import (
     Button,
-    Center,
     Column,
     Config,
     Connector,
@@ -31,36 +30,37 @@ DEFAULTS = {
 
 
 def build(engine: Engine) -> Scene:
-    """Assemble the app scene, opening the header editor on first run."""
+    """Assemble the app scene: header, menu, content, and footer bars."""
     cfg = Config.load(CONFIG_PATH, defaults=DEFAULTS)
     header = engine.make_header(cfg.get("header"), border=cfg.get("border"), fg=cfg.get("fg"))
     footer = engine.make_footer(
         cfg.get("footer"), border=cfg.get("footer_border"), fg=cfg.get("footer_fg")
     )
-    button = Button("Press Enter", on_activate=lambda: print("hi from @@package@@!"))
-    button.focus(True)
+    # Hook for later: widget choices + editor plug in here.
+    add = Button("Add widget", on_activate=None)
     edit_header = Button("Edit header bar", on_activate=lambda: open_editor("header"))
     edit_footer = Button("Edit footer bar", on_activate=lambda: open_editor("footer"))
     quit = Button("Quit", on_activate=engine.stop)
     body = Column()
-    center = Center()
-    center.add(button)
-    body.add(center)
-    body.add(Connector("available"))
     actions = Row()
+    actions.add(add)
+    actions.add(Connector("available", horizontal=True))
     actions.add(edit_header)
+    actions.add(Connector("available", horizontal=True))
     actions.add(edit_footer)
+    actions.add(Connector("available", horizontal=True))
     actions.add(quit)
-    actions_center = Center()
-    actions_center.add(actions)
-    body.add(actions_center)
+    body.add(actions)
     body.add(Label("Enter: activate · arrows: move · Quit button: quit", align="center"))
     dialog = Panel(body, title="@@title@@", padding=1)
-    dialog_center = Center(align="right")
-    dialog_center.add(dialog)
+    content_body = Column()
+    content_body.add(Label("Build your app here.", align="center"))
+    content_body.add(Label("Add widgets to the content section in app.py.", align="center"))
+    content = Panel(content_body, title="Content", padding=1)
     main = Column()
     main.add(header)
-    main.add(dialog_center)
+    main.add(dialog)
+    main.add(content)
     main.add(footer)
     root = Stack()
     root.add(main)

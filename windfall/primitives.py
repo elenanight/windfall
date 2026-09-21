@@ -85,25 +85,44 @@ _CONNECTOR_STATES = {
 
 
 class Connector(Primitive):
-    """A vertical shaft linking stacked boxes, colored by node state.
+    """A shaft linking boxes, colored by node state.
 
+    Vertical by default (``│``); pass ``horizontal=True`` for a ``─`` shaft.
     States are ``"available"`` (green), ``"unavailable"`` (red),
     ``"unlockable"`` (blue), and ``"active"`` (``"dark_orange"`` — plain
     ``"orange"`` is not a valid terminal color). The shaft centers itself
     within the given rect.
     """
 
-    def __init__(self, state: str = "available", height: int = 1) -> None:
+    def __init__(
+        self,
+        state: str = "available",
+        height: int = 1,
+        *,
+        horizontal: bool = False,
+        width: int = 3,
+    ) -> None:
         if state not in _CONNECTOR_STATES:
             raise ValueError(f"state must be one of {sorted(_CONNECTOR_STATES)}, got {state!r}")
         self.state = state
+        self.horizontal = horizontal
         self._style = Style(fg=_CONNECTOR_STATES[state])
         self._height = max(0, height)
+        self._width = max(0, width)
 
     def size(self) -> Vec2:
+        if self.horizontal:
+            return Vec2(self._width, 1)
         return Vec2(1, self._height)
 
     def draw(self, canvas, rect: Rect) -> None:
+        if self.horizontal:
+            if rect.width <= 0 or rect.height <= 0 or self._width <= 0:
+                return
+            width = min(self._width, rect.width)
+            x = rect.x + (rect.width - width) // 2
+            canvas.write("─" * width, x, rect.y + rect.height // 2, self._style)
+            return
         if rect.width <= 0 or self._height <= 0:
             return
         x = rect.x + rect.width // 2

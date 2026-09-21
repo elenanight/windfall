@@ -231,8 +231,8 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert _find_all(again.root, HeaderEditor) == []
     assert any("hello from myapp!" in line for line in Compositor().text(again))
     shafts = _find_all(again.root, Connector)
-    assert len(shafts) == 1
-    assert shafts[0].state == "available"
+    assert len(shafts) == 3
+    assert all(shaft.state == "available" and shaft.horizontal for shaft in shafts)
 
     quit = next(
         w
@@ -266,4 +266,6 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     final = module.build(Engine())
     assert _find_all(final.root, FooterEditor) == []
     assert _find_all(final.root, HeaderEditor) == []
-    assert any("built with windfall" in line for line in Compositor().text(final))
+    rendered = Compositor().text(final)
+    assert any("built with windfall" in line for line in rendered)
+    assert any("Build your app here." in line for line in rendered)
