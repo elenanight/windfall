@@ -440,6 +440,9 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert again.handle(Event(ACTIVATE)) is True
     assert '"type": "Label"' in config_path.read_text(encoding="utf-8")
     assert _find_all(again.root, AddWidget) == []
+    rendered = Compositor().text(again)
+    assert any("New label" in line for line in rendered)
+    assert not any("Build your app here." in line for line in rendered)
 
     buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
     _, _, edit, _ = buttons
@@ -489,6 +492,7 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert '"type": "Label"' not in config_path.read_text(encoding="utf-8")
     assert _find_all(again.root, RemoveWidget) == []
     assert not any("New label" in line for line in Compositor().text(again))
+    assert any("Build your app here." in line for line in Compositor().text(again))
 
     final = module.build(Engine())
     assert _find_all(final.root, FooterEditor) == []

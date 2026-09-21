@@ -74,8 +74,10 @@ def build(engine: Engine) -> Scene:
     body.add(Label("W add · E edit · R remove · Q back · arrows move · Enter activate", align="center"))
     dialog = Panel(body, title="@@title@@", padding=0)
     content_main = Column()
-    content_main.add(Label("Build your app here.", align="center"))
-    content_main.add(Label("Add widgets to the content section in app.py.", align="center"))
+    guide_build = Label("Build your app here.", align="center")
+    guide_where = Label("Add widgets to the content section in app.py.", align="center")
+    content_main.add(guide_build)
+    content_main.add(guide_where)
     content_aside = Column()
     content_row = Row(fill=True, weights=[1, 0])
     content_row.add(content_main)
@@ -213,6 +215,18 @@ def build(engine: Engine) -> Scene:
             main.add(footer)
 
     placed: list = []  # (spec, parent, node) records backing removal
+    guides = [guide_build, guide_where]
+
+    def _sync_guides() -> None:
+        """Show the guide labels only while no widgets are placed."""
+        if placed:
+            for guide in guides:
+                if guide in content_main.children:
+                    content_main.remove(guide)
+        else:
+            for guide in guides:
+                if guide not in content_main.children:
+                    content_main.add(guide)
 
     def build_slot(kind: str, placement: str, stretch: bool = False):
         """Assemble a placed widget and its slot without attaching either."""
@@ -253,6 +267,7 @@ def build(engine: Engine) -> Scene:
         spec = {"type": kind, "placement": placement, "stretch": stretch}
         placed.append((spec, parent, node))
         cfg.set("widgets", [record[0] for record in placed]).save()
+        _sync_guides()
         close_editor()
 
     def save_edited(index: int, kind: str, placement: str, stretch: bool) -> None:
@@ -272,6 +287,7 @@ def build(engine: Engine) -> Scene:
         _, parent, node = placed.pop(index)
         parent.remove(node)
         cfg.set("widgets", [record[0] for record in placed]).save()
+        _sync_guides()
         close_editor()
 
     for spec in cfg.get("widgets", []):
@@ -281,6 +297,7 @@ def build(engine: Engine) -> Scene:
         parent, node = place_widget(kind, placement, stretch)
         placed.append(({"type": kind, "placement": placement, "stretch": stretch}, parent, node))
 
+    _sync_guides()
     _sync_bars()
     return scene
 
