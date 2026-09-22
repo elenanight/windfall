@@ -2,12 +2,13 @@
 
 ## Supported Versions
 
-Only the latest minor release line receives security fixes:
+Only the latest release receives security fixes. All earlier releases are
+end-of-life and will not receive patches:
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.2.x   | :white_check_mark: |
-| < 0.2.0 | :x:                |
+| Version  | Supported          |
+| -------- | ------------------ |
+| 0.2.6    | :white_check_mark: |
+| <= 0.2.5 | :x:                |
 
 ## Reporting a Vulnerability
 
