@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from examples import animation, bouncer, menu
+from examples import animation, bouncer, menu, snake
 from tests.helpers import move
 from windfall import Compositor, Engine
+from windfall.events import ACTIVATE, Event
 from windfall.widgets import ListView
+
+_TICK = snake._TICK
 
 
 class TestExampleMenu:
@@ -80,4 +83,66 @@ class TestAnimationShowcase:
 
     def test_renders(self) -> None:
         rows = Compositor(30, 18).text(animation.build(width=24))
+        assert any(row.strip() for row in rows)
+
+
+class TestSnake:
+    def test_steers_and_eats(self) -> None:
+        scene = snake.build()
+        game = scene.snake
+        engine = Engine()
+        engine.use_scene(scene)
+        game._food = (game.width // 2 + 1, game.height // 2)
+        engine.step(_TICK)
+        assert game._body[0] == (game.width // 2 + 1, game.height // 2)
+        assert game.score == 1
+        engine.post_event(move("up"))
+        engine.step(_TICK)
+        assert game._body[0] == (game.width // 2 + 1, game.height // 2 - 1)
+
+    def test_dies_and_restarts(self) -> None:
+        scene = snake.build()
+        game = scene.snake
+        engine = Engine()
+        engine.use_scene(scene)
+        assert game.alive is True
+        engine.post_event(move("up"))
+        for _ in range(6):
+            engine.step(_TICK)
+        assert game.alive is False
+        engine.post_event(Event(ACTIVATE))
+        engine.step(0.016)
+        assert game.alive is True
+        assert game._body == [(game.width // 2, game.height // 2)]
+
+    def test_no_turning_back_into_itself(self) -> None:
+        scene = snake.build()
+        game = scene.snake
+        engine = Engine()
+        engine.use_scene(scene)
+        engine.post_event(move("left"))  # reverse of the starting rightward dir
+        engine.step(_TICK)
+        assert game._body[0] == (game.width // 2 + 1, game.height // 2)
+
+    def test_win_when_board_is_eaten(self) -> None:
+        game = snake.Snake(2, 1, seed=1)
+        game._body = [(0, 0)]  # one cell free: (1, 0) holds the food
+        game._food = (1, 0)
+        game._dir = (1, 0)
+        game._move()  # eat the final cell; nothing left for food
+        assert game.won is True
+        assert game.alive is False
+
+    def test_status_line_reports_length(self) -> None:
+        scene = snake.build()
+        engine = Engine()
+        engine.use_scene(scene)
+        game = scene.snake
+        game._food = (game.width // 2 + 1, game.height // 2)
+        engine.step(_TICK)
+        rows = Compositor(40, 14).text(scene)
+        assert any("length 1" in row for row in rows)
+
+    def test_renders(self) -> None:
+        rows = Compositor(40, 14).text(snake.build())
         assert any(row.strip() for row in rows)

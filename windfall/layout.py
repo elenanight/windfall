@@ -62,7 +62,8 @@ def _tick(node, dt: float) -> None:
         updater = getattr(child, "update", None)
         if updater is not None:
             updater(dt)
-        _tick(child, dt)
+        if not isinstance(child, Container):
+            _tick(child, dt)
 
 
 def _deliver(node, event: Event) -> bool:
