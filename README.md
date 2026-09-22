@@ -1,7 +1,7 @@
 # Windfall
 
 <!-- badges:start -->
-[![version](https://img.shields.io/badge/version-0.2.7-blue)](https://github.com/elenanight/windfall/releases)
+[![version](https://img.shields.io/badge/version-0.2.8-blue)](https://github.com/elenanight/windfall/releases)
 [![stable](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=main&label=stable)](https://github.com/elenanight/windfall/actions/workflows/ci.yml?query=branch%3Amain)
 [![dev](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=dev&label=dev)](https://github.com/elenanight/windfall/actions/workflows/ci.yml?query=branch%3Adev)
 [![changelog](https://img.shields.io/badge/latest-changelog-orange)](https://github.com/elenanight/windfall/blob/main/CHANGELOG.md)

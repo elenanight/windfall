@@ -187,6 +187,9 @@ def verify(version: str | None = None) -> tuple[bool, list[str]]:
 
     if not _changelog_has_section(version):
         _ensure_changelog_section(version)
+        # Re-check after ensure attempt; if still missing, record the problem
+        if not _changelog_has_section(version):
+            problems.append(f"CHANGELOG has no non-empty ## [{version}] section")
 
     return (not problems, problems)
 

@@ -51,10 +51,10 @@ class TestPrior:
 class TestSupportWindow:
     def test_support_rows_three_slot_window(self) -> None:
         assert cr.support_rows("0.2.7") == [
-            ("0.2.7", ":white_check_mark:"),
-            ("0.2.6", ":white_check_mark:"),
-            ("0.2.5", ":white_check_mark:"),
-            ("<= 0.2.4", ":x:"),
+            ("0.2.7", "✅"),
+            ("0.2.6", "✅"),
+            ("0.2.5", "✅"),
+            ("<= 0.2.4", "❌"),
         ]
 
     def test_slid_eol_is_window_tail(self) -> None:
