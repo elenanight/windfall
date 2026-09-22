@@ -51,21 +51,27 @@ class Engine:
         """Assemble a footer bar from primitives with the given colors."""
         return Footer(text, border=border, fg=fg)
 
-    def make_widget(self, kind: str = "Label"):
-        """Assemble a default content widget of the given kind.
+    def make_widget(self, kind: str = "Label", *, id: str = "", text: str = ""):
+        """Assemble a content widget of the given kind with a name and text.
 
+        ``id`` names the widget so it can be referenced and relabeled in
+        config; ``text`` seeds the widget's content (label, button, or
+        input value) and is ignored by kinds without a single text field.
         Unknown kinds fall back to a ``Label`` so a corrupt config can
         never break app boot.
         """
         if kind == "Button":
-            return Button("New button")
-        if kind == "TextInput":
-            return TextInput("New input")
-        if kind == "ListView":
-            return ListView(items=["Option 1", "Option 2"])
-        if kind == "Divider":
-            return Divider()
-        return Label("New label", align="center")
+            widget = Button(text or "New button")
+        elif kind == "TextInput":
+            widget = TextInput(text or "New input")
+        elif kind == "ListView":
+            widget = ListView(items=["Option 1", "Option 2"])
+        elif kind == "Divider":
+            widget = Divider()
+        else:
+            widget = Label(text or "New label", align="center")
+        widget.id = id
+        return widget
 
     def post_event(self, event: Event) -> None:
         self._queue.post(event)

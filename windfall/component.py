@@ -14,7 +14,8 @@ class Component(Primitive):
     ``size`` and ``draw``; ``update`` and ``handle`` default to harmless no-ops.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, id: str = "") -> None:
+        self.id = id
         self.focused = False
         self.focusable = False
 

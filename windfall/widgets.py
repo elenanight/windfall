@@ -237,6 +237,10 @@ class TextInput(Component):
     def value(self) -> str:
         return self._text
 
+    def set_value(self, value: str) -> None:
+        self._text = value
+        self._cursor = len(value)
+
 
 class ListView(Component):
     """A focusable list of options with keyboard navigation."""
@@ -515,12 +519,13 @@ STRETCH = ("No", "Yes")
 class AddWidget(Panel):
     """Palette panel for dropping a widget into the content section.
 
-    Offers a curated widget list, a placement list (left, center, right,
-    full width, or sidebar), and a stretch option. ``on_add`` receives
-    ``(kind, placement, stretch)``; ``on_cancel`` takes no arguments.
-    ``fits`` optionally validates ``(kind, placement, stretch)`` and
-    returns a refusal reason (or ``None``); on refusal the palette stays
-    open showing the reason in its status line.
+    Offers an id field, a text field, a curated widget list, a placement
+    list (left, center, right, full width, or sidebar), and a stretch
+    option. ``on_add`` receives ``(kind, placement, stretch, id, text)``;
+    ``on_cancel`` takes no arguments. ``fits`` optionally validates
+    ``(kind, placement, stretch, id, text)`` and returns a refusal reason
+    (or ``None``); on refusal the palette stays open showing the reason in
+    its status line.
     """
 
     def __init__(
@@ -544,6 +549,8 @@ class AddWidget(Panel):
         self._types = ListView(items=kind_shown)
         self._places = ListView(items=place_shown)
         self._stretch = ListView(items=stretch_shown)
+        self._id_field = TextInput("")
+        self._text_field = TextInput("")
         halves = Row(fill=True)
         left = Column()
         left.add(Label("Widget:"))
@@ -558,6 +565,12 @@ class AddWidget(Panel):
         halves.add(middle)
         halves.add(right)
         body = Column()
+        body.add(Label("Widget id:"))
+        body.add(self._id_field)
+        body.add(Connector("available"))
+        body.add(Label("Text:"))
+        body.add(self._text_field)
+        body.add(Connector("available"))
         body.add(halves)
         body.add(Connector("available"))
         actions = Row()
@@ -571,19 +584,23 @@ class AddWidget(Panel):
         kind = self._kinds[self._types.selection]
         placement = self._placements[self._places.selection]
         stretch = self._stretch.selection == 1
+        id = self._id_field.value.strip()
+        text = self._text_field.value.strip()
         if self._fits is not None:
-            reason = self._fits(kind, placement, stretch)
+            reason = self._fits(kind, placement, stretch, id, text)
             if reason:
                 self._status.set_text(reason)
                 return
         if self.on_add is not None:
-            self.on_add(kind, placement, stretch)
+            self.on_add(kind, placement, stretch, id, text)
 
-    def preset(self, kind: str, placement: str, stretch: bool) -> None:
-        """Preselect lists for editing an existing placement."""
+    def preset(self, kind: str, placement: str, stretch: bool, id: str = "", text: str = "") -> None:
+        """Preselect lists and fields for editing an existing placement."""
         self._types.select(_index_of(self._kinds, kind))
         self._places.select(_index_of(self._placements, placement))
         self._stretch.select(1 if stretch else 0)
+        self._id_field.set_value(id)
+        self._text_field.set_value(text)
 
     def _abort(self) -> None:
         if self.on_cancel is not None:

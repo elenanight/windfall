@@ -138,3 +138,19 @@ def test_make_widget_builds_each_kind() -> None:
     assert isinstance(engine.make_widget("ListView"), ListView)
     assert isinstance(engine.make_widget("Divider"), Divider)
     assert isinstance(engine.make_widget("Nope"), Label)  # unknown kinds fall back
+
+
+def test_make_widget_applies_id_and_text() -> None:
+    engine = Engine()
+    label = engine.make_widget("Label", id="greeting", text="Hello")
+    assert label.id == "greeting"
+    assert label.size() == Label("Hello").size()
+    button = engine.make_widget("Button", id="save", text="Go")
+    assert button.id == "save"
+    assert button.size() == Button("Go").size()
+    field = engine.make_widget("TextInput", id="name", text="amy")
+    assert field.id == "name"
+    assert field.value == "amy"
+    divider = engine.make_widget("Divider", id="gap", text="ignored")
+    assert divider.id == "gap"
+    assert engine.make_widget("Label", id="m", text="").size() == Label("New label").size()

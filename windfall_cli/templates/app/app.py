@@ -125,6 +125,10 @@ def build(engine: Engine) -> Scene:
         main.children.insert(1, editor)
         scene.set_focus_scope(editor)
 
+    def widget_label(spec: dict) -> str:
+        """Name a placed widget by its id, falling back to its kind."""
+        return f"{spec.get('id') or spec.get('type')} · {spec.get('placement')}"
+
     def open_editor(kind: str) -> None:
         if kind == "footer":
             editor = FooterEditor(
@@ -138,7 +142,7 @@ def build(engine: Engine) -> Scene:
         elif kind == "widget":
             editor = AddWidget(on_add=save_widget, on_cancel=close_editor, fits=space_reason)
         elif kind == "remove":
-            entries = [f"{spec.get('type')} · {spec.get('placement')}" for spec, _, _ in placed]
+            entries = [widget_label(spec) for spec, _, _ in placed]
             editor = RemoveWidget(entries, on_remove=remove_widget, on_cancel=close_editor)
         else:
             editor = HeaderEditor(
@@ -156,7 +160,7 @@ def build(engine: Engine) -> Scene:
             "Header bar" + ("" if cfg.get("header_visible", True) else " (hidden)"),
             "Footer bar" + ("" if cfg.get("footer_visible", True) else " (hidden)"),
         ]
-        entries.extend(f"{spec.get('type')} · {spec.get('placement')}" for spec, _, _ in placed)
+        entries.extend(widget_label(spec) for spec, _, _ in placed)
         _show_editor(EditMenu(entries, on_pick=pick_edit_target, on_cancel=close_editor))
 
     def pick_edit_target(index: int) -> None:
@@ -171,11 +175,19 @@ def build(engine: Engine) -> Scene:
         spec, _, _ = placed[index]
         editor = AddWidget(
             title="Edit widget",
-            on_add=lambda kind, placement, stretch: save_edited(index, kind, placement, stretch),
+            on_add=lambda kind, placement, stretch, id, text: save_edited(
+                index, kind, placement, stretch, id, text
+            ),
             on_cancel=close_editor,
             fits=space_reason,
         )
-        editor.preset(spec.get("type", "Label"), spec.get("placement", "full"), spec.get("stretch", False))
+        editor.preset(
+            spec.get("type", "Label"),
+            spec.get("placement", "full"),
+            spec.get("stretch", False),
+            spec.get("id", ""),
+            spec.get("text", ""),
+        )
         _show_editor(editor)
 
     def close_editor() -> None:
@@ -228,9 +240,9 @@ def build(engine: Engine) -> Scene:
                 if guide not in content_main.children:
                     content_main.add(guide)
 
-    def build_slot(kind: str, placement: str, stretch: bool = False):
+    def build_slot(kind: str, placement: str, stretch: bool = False, id: str = "", text: str = ""):
         """Assemble a placed widget and its slot without attaching either."""
-        widget = engine.make_widget(kind)
+        widget = engine.make_widget(kind, id=id, text=text)
         target = content_aside if placement == "sidebar" else content_main
         if stretch or placement in ("sidebar", "full"):
             return target, widget
@@ -245,40 +257,40 @@ def build(engine: Engine) -> Scene:
             slot.add(widget)
         return target, slot
 
-    def place_widget(kind: str, placement: str, stretch: bool = False):
+    def place_widget(kind: str, placement: str, stretch: bool = False, id: str = "", text: str = ""):
         """Drop an assembled widget into the content section at a placement."""
-        target, node = build_slot(kind, placement, stretch)
+        target, node = build_slot(kind, placement, stretch, id, text)
         target.add(node)
         return target, node
 
-    def space_reason(kind: str, placement: str, stretch: bool) -> str | None:
+    def space_reason(kind: str, placement: str, stretch: bool, id: str = "", text: str = "") -> str | None:
         """Refuse placement when the widget is wider than the content area."""
         if stretch:
             return None
-        widget = engine.make_widget(kind)
+        widget = engine.make_widget(kind, id=id, text=text)
         target = content_aside if placement == "sidebar" else content_main
         width = max((child.size().x for child in target.children), default=0)
         if widget.size().x > width:
             return f"No room: {kind} needs {widget.size().x} cols, content has {width}"
         return None
 
-    def save_widget(kind: str, placement: str, stretch: bool) -> None:
-        parent, node = place_widget(kind, placement, stretch)
-        spec = {"type": kind, "placement": placement, "stretch": stretch}
+    def save_widget(kind: str, placement: str, stretch: bool, id: str = "", text: str = "") -> None:
+        parent, node = place_widget(kind, placement, stretch, id, text)
+        spec = {"type": kind, "placement": placement, "stretch": stretch, "id": id, "text": text}
         placed.append((spec, parent, node))
         cfg.set("widgets", [record[0] for record in placed]).save()
         _sync_guides()
         close_editor()
 
-    def save_edited(index: int, kind: str, placement: str, stretch: bool) -> None:
+    def save_edited(index: int, kind: str, placement: str, stretch: bool, id: str = "", text: str = "") -> None:
         _, parent, node = placed[index]
-        new_parent, new_node = build_slot(kind, placement, stretch)
+        new_parent, new_node = build_slot(kind, placement, stretch, id, text)
         if new_parent is parent:
             new_parent.children[parent.children.index(node)] = new_node
         else:
             parent.remove(node)
             new_parent.add(new_node)
-        new_spec = {"type": kind, "placement": placement, "stretch": stretch}
+        new_spec = {"type": kind, "placement": placement, "stretch": stretch, "id": id, "text": text}
         placed[index] = (new_spec, new_parent, new_node)
         cfg.set("widgets", [record[0] for record in placed]).save()
         close_editor()
@@ -294,8 +306,10 @@ def build(engine: Engine) -> Scene:
         kind = spec.get("type", "Label")
         placement = spec.get("placement", "full")
         stretch = spec.get("stretch", False)
-        parent, node = place_widget(kind, placement, stretch)
-        placed.append(({"type": kind, "placement": placement, "stretch": stretch}, parent, node))
+        id = spec.get("id", "")
+        text = spec.get("text", "")
+        parent, node = place_widget(kind, placement, stretch, id, text)
+        placed.append(({"type": kind, "placement": placement, "stretch": stretch, "id": id, "text": text}, parent, node))
 
     _sync_guides()
     _sync_bars()

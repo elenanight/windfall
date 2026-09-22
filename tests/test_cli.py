@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from windfall.events import MOVE, Event
+from windfall.events import KEY, MOVE, Event
 from windfall_cli import cli
 
 
@@ -235,6 +235,10 @@ def _find_all(node, kind: type) -> list:
 
 def _move(direction: str) -> Event:
     return Event(MOVE, {"direction": direction})
+
+
+def _key(char: str) -> Event:
+    return Event(KEY, {"key": char})
 
 
 def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
@@ -474,6 +478,43 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert '"placement": "right"' in config_path.read_text(encoding="utf-8")
     assert _find_all(again.root, AddWidget) == []
     assert any("New label" in line for line in Compositor().text(again))
+
+    buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
+    _, _, edit, _ = buttons
+    for widget in focusables(again.root):
+        widget.focus(False)
+    edit.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    menus = _find_all(again.root, EditMenu)
+    assert len(menus) == 1
+    menu_lists = [w for w in focusables(menus[0]) if isinstance(w, ListView)]
+    menu_lists[0].focus(True)
+    menu_lists[0].handle(_move("down"))
+    menu_lists[0].handle(_move("down"))
+    assert again.handle(Event(ACTIVATE)) is True  # pick the placed Label again
+    editors = _find_all(again.root, AddWidget)
+    assert len(editors) == 1
+    fields = [w for w in focusables(editors[0]) if isinstance(w, TextInput)]
+    assert len(fields) == 2  # id and text fields open preset
+    fields[0].focus(True)
+    for char in "greeting":
+        fields[0].handle(_key(char))
+    assert fields[0].value == "greeting"
+    fields[0].focus(False)
+    fields[1].focus(True)
+    for char in "Hello!":
+        fields[1].handle(_key(char))
+    fields[1].focus(False)
+    save, _ = [w for w in focusables(editors[0]) if isinstance(w, Button)]
+    for widget in focusables(again.root):
+        widget.focus(False)
+    save.focus(True)
+    assert again.handle(Event(ACTIVATE)) is True
+    assert '"id": "greeting"' in config_path.read_text(encoding="utf-8")
+    assert '"text": "Hello!"' in config_path.read_text(encoding="utf-8")
+    assert _find_all(again.root, AddWidget) == []
+    assert any("Hello!" in line for line in Compositor().text(again))
+    assert not any("New label" in line for line in Compositor().text(again))
 
     buttons = [w for w in focusables(again.root) if isinstance(w, Button)]
     _, remove, _, _ = buttons
