@@ -16,9 +16,10 @@ from pathlib import Path
 
 from windfall import Button, Column, Engine, Hotkey, Label, ListView, Panel, Row, Scene, TextInput
 from windfall.primitives import Box
-from windfall.scene import focusables
+from windfall.scene import Frame, focusables
 from windfall.style import Style
 from windfall_cli.scaffold import Scaffolder
+from windfall_cli.splash import build_splash
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 ARCHIVE_DIR = ".archive"
@@ -315,7 +316,12 @@ def build_menu(engine: Engine, base=None) -> Scene:
 def main(root=None) -> int:
     """Run the project manager interactively for ``<root>/project``."""
     engine = Engine()
-    engine.use_scene(build_menu(engine, root))
+    menu = build_menu(engine, root)
+
+    def handoff() -> None:
+        engine.frames.replace(Frame(menu))
+
+    engine.use_scene(build_splash(on_done=handoff))
     engine.run()
     farewell()
     return 0
