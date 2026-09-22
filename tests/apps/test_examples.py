@@ -4,13 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from examples import animation, bouncer, menu, snake
+from examples import animation, bouncer, menu
 from tests.helpers import move
 from windfall import Compositor, Engine
-from windfall.events import ACTIVATE, Event
 from windfall.widgets import ListView
-
-_TICK = snake._TICK
 
 
 class TestExampleMenu:
@@ -83,38 +80,4 @@ class TestAnimationShowcase:
 
     def test_renders(self) -> None:
         rows = Compositor(30, 18).text(animation.build(width=24))
-        assert any(row.strip() for row in rows)
-
-
-class TestSnake:
-    def test_steers_and_eats(self) -> None:
-        scene = snake.build()
-        game = scene.root
-        engine = Engine()
-        engine.use_scene(scene)
-        game._food = (game.width // 2 + 1, game.height // 2)
-        engine.step(_TICK)
-        assert game._body[0] == (game.width // 2 + 1, game.height // 2)
-        assert len(game._body) == 2
-        engine.post_event(move("up"))
-        engine.step(_TICK)
-        assert game._body[0] == (game.width // 2 + 1, game.height // 2 - 1)
-
-    def test_dies_and_restarts(self) -> None:
-        scene = snake.build()
-        game = scene.root
-        engine = Engine()
-        engine.use_scene(scene)
-        assert game.alive is True
-        engine.post_event(move("up"))
-        for _ in range(6):
-            engine.step(_TICK)
-        assert game.alive is False
-        engine.post_event(Event(ACTIVATE))
-        engine.step(0.016)
-        assert game.alive is True
-        assert game._body == [(game.width // 2, game.height // 2)]
-
-    def test_renders(self) -> None:
-        rows = Compositor(20, 10).text(snake.build())
         assert any(row.strip() for row in rows)

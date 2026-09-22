@@ -24,10 +24,12 @@ wiki once it exists.
 
 - **Project manager TUI** *(released in 0.2.5)* — browse, open, archive,
   and delete apps without leaving the terminal.
-- **Boot splash** *(in progress)* — ASCII-art logo fade-in with a progress
+- **Boot splash** *(in progress)* — ASCII logo fade-in with a progress
   bar that lands in the project menu.
-- **Animation release** *(in progress)* — motion primitives and scripted
-  transitions built on the deterministic clock.
+- **Animation release** *(released in 0.2.6)* — `Motion` and `Sequence`
+  motion primitives plus an easing showcase, runnable via the CLI.
+- **Snake rewrite** *(planned for 2.7)* — the bundled snake is being
+  rebuilt (was removed from 0.2.6); it returns as a clean grid game.
 - **Widget guides** *(planned)* — per-widget usage docs in the wiki.
 - **Vember OS** *(long term)* — a node-based OS rendering through
   Windfall as an imported package.
@@ -41,7 +43,6 @@ uv run windfall menu                  # browse, open, and manage projects
 uv run windfall new myapp             # scaffold a new app into project/myapp
 cd project/myapp && uv run python app.py   # run it
 uv run python examples/animation.py  # or watch the animation showcase
-uv run python examples/snake.py       # or play a game
 ```
 
 ## What's inside
@@ -81,7 +82,7 @@ windfall new NAME [--template app] [--dest DIR] [--yes]   scaffold into DIR/proj
 windfall run [app.py]                             run a file (default: the demo)
 windfall demo [--headless] [--ticks N]            run the built-in demo
 windfall menu [--dir DIR]                         browse, open, archive, and delete projects
-windfall example NAME [--headless] [--ticks N]    run a bundled example (menu/bouncer/animation/snake)
+windfall example NAME [--headless] [--ticks N]    run a bundled example (menu/bouncer/animation)
 windfall check [--ticks N]                        headless smoke check (exit 0/1)
 windfall list app.py                              list Scene/Component subclasses (AST)
 windfall help | --help | --version
@@ -130,8 +131,9 @@ keeps a live project count.
   ceiling forever, chaining `Motion` steps in a `Sequence`.
 - `examples/animation.py` — three dots racing under different easings and
   a yellow orbiter squaring around its board.
-- `examples/snake.py` — a tiny grid game with deterministic `update(dt)`
-  movement, arrow steering, and Enter to restart.
+- `examples/snake.py` — *(rewritten in 2.7)* — the tiny grid game is being
+  rebuilt for 2.7; snap the old example (run `git show` on the 0.2.5 tag) if
+  you want the classic before then.
 
 Run any example headless for N fixed ticks by posting events and calling
 `engine.step(dt)` — see `tests/test_examples.py`.

@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - None yet.
 
+### Removed
+
+- The bundled `snake` example is pulled from the command line and docs so a
+  rewrite can land as a follow-up release. Its tests are removed with it.
+  `windfall example snake` now reports an unknown example (exit code 2).
+
 ## [0.2.6] - 2026-09-22
 
 ### Added

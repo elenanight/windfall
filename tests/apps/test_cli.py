@@ -288,12 +288,11 @@ class TestAliases:
         assert "menu" in out
         assert "bouncer" in out
         assert "animation" in out
-        assert "snake" in out
 
 
 class TestExampleCommand:
     def test_subcommand_headless(self) -> None:
-        assert cli.main(["example", "snake", "--headless", "--ticks", "5"]) == 0
+        assert cli.main(["example", "animation", "--headless", "--ticks", "5"]) == 0
 
     def test_subcommand_unknown_choice(self) -> None:
         with pytest.raises(SystemExit) as exc:

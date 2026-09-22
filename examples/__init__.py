@@ -1,4 +1,4 @@
-"""Example windfall apps: a menu, an animation, and a tiny snake game.
+"""Example windfall apps: a menu, an animation, and a bouncing ball.
 
 Each module exposes a ``build()`` function returning a ready ``Scene`` and a
 ``__main__`` block that runs it with the interactive engine, so an example can
