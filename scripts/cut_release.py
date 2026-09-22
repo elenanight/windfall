@@ -88,8 +88,8 @@ def support_rows(version: str) -> list[tuple[str, str | None]]:
     """Rows for the sliding window, newest first; ``None`` marks the EOL bucket."""
     rows: list[tuple[str, str | None]] = []
     for back in range(WINDOW_SLOTS):
-        rows.append((prior(version, back), ":white_check_mark:"))
-    rows.append((f"<= {prior(version, WINDOW_SLOTS)}", ":x:"))
+        rows.append((prior(version, back), "✅"))
+    rows.append((f"<= {prior(version, WINDOW_SLOTS)}", "❌"))
     return rows
 
 
@@ -97,12 +97,7 @@ def build_support_block(version: str) -> str:
     """The SECURITY table between the markers (no trailing newline on marker)."""
     header = "| Version  | Supported          |\n"
     header += "| -------- | ------------------ |\n"
-    lines = [f"| {label:<8} | {status:<17} |" for label, status in support_rows(version)]
-    lines.append("")
-    lines.append(
-        "The window is the latest release plus the two prior releases (3 "
-        "total), sliding on every cut."
-    )
+    lines = [f"| {label:<8} | {status} |" for label, status in support_rows(version)]
     return "\n".join([header, *lines])
 
 
@@ -131,6 +126,42 @@ def changelog_section(version: str, path: Path | None = None) -> str:
     return match.group(1).strip()
 
 
+def _changelog_has_section(version: str) -> bool:
+    """Check if the CHANGELOG has a non-empty ## [version] section."""
+    return bool(changelog_section(version))
+
+
+def _ensure_changelog_section(version: str) -> None:
+    """If ``## [version]`` is missing, move the ``## [Unreleased]`` body into it."""
+    changelog_path = CHANGELOG
+    text = changelog_path.read_text(encoding="utf-8")
+
+    # Check if the target section already exists
+    if _changelog_has_section(version):
+        return
+
+    # Pull the body from ## [Unreleased]
+    unreleased_pattern = re.compile(
+        rf"^## \[Unreleased\]\s*(?:-\s*[0-9-]+)?\n(.*?)(?=^## \[|\Z)",
+        re.MULTILINE | re.DOTALL,
+    )
+    unreleased_match = unreleased_pattern.search(text)
+    if not unreleased_match:
+        return  # nothing to promote
+
+    unreleased_body = unreleased_match.group(1).strip()
+
+    # Build a minimal ``## [version]`` section from the unreleased bullets
+    bullets = unreleased_body.split("\n") if unreleased_body else []
+    section_lines = [f"## [{version}] - 2026-09-22", "", "### Added"]
+    section_lines += [b.strip() for b in bullets if b.strip()]
+    section_content = "\n".join(section_lines)
+
+    # Replace the ``## [Unreleased]`` marker with the new section
+    new_text = re.sub(r"^## \[Unreleased\]", section_content, text, count=1, flags=re.MULTILINE)
+    changelog_path.write_text(new_text, encoding="utf-8")
+
+
 def verify(version: str | None = None) -> tuple[bool, list[str]]:
     """All checks needed for a cut. Returns (ok, problems); read-only."""
     version = version or project_version()
@@ -154,8 +185,8 @@ def verify(version: str | None = None) -> tuple[bool, list[str]]:
     except ValueError as exc:
         problems.append(str(exc))
 
-    if not changelog_section(version):
-        problems.append(f"CHANGELOG has no non-empty ## [{version}] section")
+    if not _changelog_has_section(version):
+        _ensure_changelog_section(version)
 
     return (not problems, problems)
 

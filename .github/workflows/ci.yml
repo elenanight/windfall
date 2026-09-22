@@ -43,3 +43,15 @@ jobs:
           git checkout main
           git merge --no-edit origin/dev
           git push origin main
+
+  release:
+    needs: promote
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - run: uv run python scripts/cut_release.py --apply
