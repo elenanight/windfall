@@ -22,11 +22,11 @@ headless and interactive alike.
 A teaser of what's coming. Full detail for each item will live in the
 wiki once it exists.
 
-- **Project manager TUI** *(in progress)* — browse, open, archive, and
-  delete apps without leaving the terminal.
-- **Boot splash** *(planned)* — ASCII-art logo fade-in with a progress
+- **Project manager TUI** *(released in 0.2.5)* — browse, open, archive,
+  and delete apps without leaving the terminal.
+- **Boot splash** *(in progress)* — ASCII-art logo fade-in with a progress
   bar that lands in the project menu.
-- **Animation release** *(planned)* — motion primitives and scripted
+- **Animation release** *(in progress)* — motion primitives and scripted
   transitions built on the deterministic clock.
 - **Widget guides** *(planned)* — per-widget usage docs in the wiki.
 - **Vember OS** *(long term)* — a node-based OS rendering through
