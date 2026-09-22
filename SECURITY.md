@@ -2,14 +2,20 @@
 
 ## Supported Versions
 
-Only the latest release receives security fixes. All earlier releases are
-end-of-life and will not receive patches:
+Only the latest release and the two releases immediately before it receive
+security fixes (a sliding window of three, refreshed on every cut). Releases
+older than the window are end-of-life and will not receive patches:
 
 <!-- security:start -->
 | Version  | Supported          |
 | -------- | ------------------ |
+
 | 0.2.6    | :white_check_mark: |
-| <= 0.2.5 | :x:                |
+| 0.2.5    | :white_check_mark: |
+| 0.2.4    | :white_check_mark: |
+| <= 0.2.3 | :x:               |
+
+The window is the latest release plus the two prior releases (3 total), sliding on every cut.
 <!-- security:end -->
 
 ## Reporting a Vulnerability
