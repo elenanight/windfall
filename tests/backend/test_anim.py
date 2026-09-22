@@ -7,12 +7,15 @@ import pytest
 from windfall.anim import (
     Animation,
     Clock,
+    Motion,
+    Sequence,
     Timeline,
     Tween,
     ease_in_out_cubic,
     ease_linear,
     ease_out_cubic,
 )
+from windfall.geom import Vec2
 
 
 class TestClock:
@@ -124,6 +127,103 @@ class TestAnimation:
         anim.reset()
         assert target.value == 0.0
         assert anim.done is False
+
+
+class Positioned:
+    def __init__(self) -> None:
+        self.x = 0.0
+        self.y = 0.0
+
+
+class TestMotion:
+    def test_strides_a_straight_path(self) -> None:
+        target = Positioned()
+        motion = Motion(target, Vec2(0, 0), Vec2(10, 20), 2.0, ease=ease_linear)
+        assert (target.x, target.y) == (0.0, 0.0)  # initial apply
+        motion.step(1.0)
+        assert target.x == pytest.approx(5.0)
+        assert target.y == pytest.approx(10.0)
+        motion.step(1.0)
+        assert motion.done is True
+        assert (target.x, target.y) == (10.0, 20.0)
+
+    def test_shared_ease_keeps_axes_on_the_line(self) -> None:
+        target = Positioned()
+        motion = Motion(target, Vec2(0, 0), Vec2(6, 9), 2.0, ease=ease_in_out_cubic)
+        motion.step(1.0)
+        assert target.x / target.y == pytest.approx(6 / 9)
+        motion.step(1.0)
+        assert (target.x, target.y) == (6.0, 9.0)
+
+    def test_zero_duration_jumps_to_end(self) -> None:
+        target = Positioned()
+        motion = Motion(target, Vec2(1, 2), Vec2(9, 8), 0.0)
+        motion.step(0.0)
+        assert (target.x, target.y) == (9.0, 8.0)
+        assert motion.done is True
+
+    def test_writes_custom_attributes(self) -> None:
+        target = Positioned()
+        motion = Motion(target, Vec2(0, 0), Vec2(10, 0), 1.0, ease=ease_linear, x_attr="left", y_attr="right")
+        assert target.left == 0.0
+        motion.step(0.5)
+        assert target.left == pytest.approx(5.0)
+
+    def test_reset_restores_start(self) -> None:
+        target = Positioned()
+        motion = Motion(target, Vec2(1, 2), Vec2(9, 8), 1.0, ease=ease_linear)
+        motion.step(1.0)
+        assert (target.x, target.y) == (9.0, 8.0)
+        motion.reset()
+        assert motion.done is False
+        assert (target.x, target.y) == (1.0, 2.0)
+
+
+class TestSequence:
+    def test_runs_steps_in_order(self) -> None:
+        first = Tween(0, 10, 1.0, ease=ease_linear)
+        second = Tween(0, 100, 1.0, ease=ease_linear)
+        seq = Sequence(first, second)
+        assert seq.done is False
+        seq.step(1.0)
+        assert first.done is True
+        assert second.value == 0.0  # not started yet
+        seq.step(0.5)
+        assert second.value == pytest.approx(50.0)
+        seq.step(1.0)
+        assert seq.done is True
+
+    def test_empty_sequence_is_done(self) -> None:
+        assert Sequence().done is True
+
+    def test_callable_steps_resolve_lazily(self) -> None:
+        built: list[int] = []
+
+        def step_one() -> Tween:
+            built.append(1)
+            return Tween(0, 1, 1.0, ease=ease_linear)
+
+        def step_two() -> Tween:
+            built.append(2)
+            return Tween(0, 2, 1.0, ease=ease_linear)
+
+        seq = Sequence(step_one, step_two)
+        assert built == []  # nothing resolved until stepped
+        seq.step(0.5)
+        assert built == [1]  # first leg resolved and is running
+        seq.step(0.5)
+        assert built == [1]  # second leg not resolved until its turn
+        assert seq.done is False
+        seq.step(1.0)
+        assert built == [1, 2]
+        assert seq.done is True
+
+    def test_steps_after_done_are_noops(self) -> None:
+        seq = Sequence(Tween(0, 1, 0.1))
+        seq.step(1.0)
+        assert seq.done is True
+        seq.step(10.0)
+        assert seq.done is True
 
 
 class TestTimeline:

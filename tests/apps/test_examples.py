@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from examples import bouncer, menu, snake
+from examples import animation, bouncer, menu, snake
 from tests.helpers import move
 from windfall import Compositor, Engine
 from windfall.events import ACTIVATE, Event
@@ -31,20 +31,58 @@ class TestExampleMenu:
 
 
 class TestBouncer:
-    def test_animates_and_reverses(self) -> None:
+    def test_bounces_up_then_back_down(self) -> None:
         scene = bouncer.build(width=24)
         engine = Engine()
         engine.use_scene(scene)
+        assert scene.ball.y == pytest.approx(5.0)  # resting on the floor
         engine.step(0.5)
-        assert scene.ball.x == pytest.approx(11.5)
-        engine.step(1.0)
-        assert scene.ball.x == pytest.approx(23.0)
+        assert scene.ball.y == pytest.approx(2.5)  # halfway up
         engine.step(0.5)
-        assert scene.ball.x == pytest.approx(11.5)
+        assert scene.ball.y == pytest.approx(0.0)  # at the ceiling
+        engine.step(0.5)
+        assert scene.ball.y == pytest.approx(2.5)  # halfway down
+        engine.step(0.5)
+        assert scene.ball.y == pytest.approx(5.0)  # floor again, loop restarts
 
     def test_renders(self) -> None:
-        scene = bouncer.build(width=24)
-        rows = Compositor(24, 4).text(scene)
+        rows = Compositor(24, 8).text(bouncer.build(width=24))
+        assert any(row.strip() for row in rows)
+
+
+class TestAnimationShowcase:
+    def test_racers_reach_the_edge(self) -> None:
+        scene = animation.build(width=24)
+        engine = Engine()
+        engine.use_scene(scene)
+        for _ in range(200):
+            engine.step(0.016)
+        assert scene.racers[0].x == pytest.approx(23.0)
+        assert scene.racers[1].x == pytest.approx(23.0)
+        assert scene.racers[2].x == pytest.approx(23.0)
+
+    def test_orbiter_traces_a_visible_square(self) -> None:
+        scene = animation.build(width=24)
+        engine = Engine()
+        engine.use_scene(scene)
+        for _ in range(25):  # leg 1: along the top to the right corner
+            engine.step(0.016)
+        assert scene.orbiter.x == pytest.approx(5.0)
+        assert scene.orbiter.y == pytest.approx(0.0)
+        for _ in range(25):  # leg 2: down the right edge
+            engine.step(0.016)
+        assert scene.orbiter.y == pytest.approx(5.0)
+        for _ in range(50):  # legs 3-4: back along the bottom and up
+            engine.step(0.016)
+        assert scene.orbiter.x == pytest.approx(0.0)
+        assert scene.orbiter.y == pytest.approx(0.0)
+        for _ in range(100):  # a second orbit still returns to the corner
+            engine.step(0.016)
+        assert scene.orbiter.x == pytest.approx(0.0)
+        assert scene.orbiter.y == pytest.approx(0.0)
+
+    def test_renders(self) -> None:
+        rows = Compositor(30, 18).text(animation.build(width=24))
         assert any(row.strip() for row in rows)
 
 

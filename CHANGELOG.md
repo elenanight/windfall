@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `id` and `text` fields for placed widgets in the Add palette, reseeding
   the editor on reopen and persisting both to config for restoration on
   boot.
+- `Motion` (Vec2) and `Sequence` (chained-step) animation primitives on
+  the deterministic clock, for eased, scripted motion.
+- `windfall example animation`: an easing and motion showcase scene.
 - Project count and total-size readout in the project menu sidebar.
 - Guide labels in scaffolded apps hide once widgets are placed.
 - `N`/`O`/`D`/`A`/`X` hotkeys for project menu actions.

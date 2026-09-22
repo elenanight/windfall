@@ -49,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--menu", action="store_true", help="open the project manager (alias for `menu`)")
     parser.add_argument("--check", action="store_true", help="headless smoke check (alias for `check`)")
     parser.add_argument("--list", metavar="PATH", default=None, help="list scene classes in a file (alias for `list`)")
-    parser.add_argument("--example", metavar="NAME", default=None, help="run a bundled example: menu, bouncer, snake")
+    parser.add_argument("--example", metavar="NAME", default=None, help="run a bundled example: menu, bouncer, animation, snake")
     parser.add_argument("--examples", action="store_true", help="list the bundled examples")
     parser.add_argument("--headless", action="store_true", help="step without a terminal (with --demo, --example)")
     parser.add_argument("--ticks", type=int, default=None, help="ticks for headless runs")
