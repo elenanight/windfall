@@ -287,6 +287,7 @@ class TestAliases:
         out = capsys.readouterr().out
         assert "menu" in out
         assert "bouncer" in out
+        assert "animation" in out
         assert "snake" in out
 
 

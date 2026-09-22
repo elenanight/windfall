@@ -10,10 +10,11 @@ from types import SimpleNamespace
 
 from windfall import Engine
 
-_EXAMPLES = ("menu", "bouncer", "snake")
+_EXAMPLES = ("menu", "bouncer", "animation", "snake")
 _DESCRIPTIONS = {
     "menu": "a focusable menu (ListView)",
     "bouncer": "a ball bouncing on a scene timeline",
+    "animation": "easing and motion with Motion and Sequence",
     "snake": "a tiny grid snake game",
 }
 _EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples"

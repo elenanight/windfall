@@ -40,6 +40,7 @@ uv run windfall demo                  # interactive demo
 uv run windfall menu                  # browse, open, and manage projects
 uv run windfall new myapp             # scaffold a new app into project/myapp
 cd project/myapp && uv run python app.py   # run it
+uv run python examples/animation.py  # or watch the animation showcase
 uv run python examples/snake.py       # or play a game
 ```
 
@@ -80,7 +81,7 @@ windfall new NAME [--template app] [--dest DIR] [--yes]   scaffold into DIR/proj
 windfall run [app.py]                             run a file (default: the demo)
 windfall demo [--headless] [--ticks N]            run the built-in demo
 windfall menu [--dir DIR]                         browse, open, archive, and delete projects
-windfall example NAME [--headless] [--ticks N]    run a bundled example (menu/bouncer/snake)
+windfall example NAME [--headless] [--ticks N]    run a bundled example (menu/bouncer/animation/snake)
 windfall check [--ticks N]                        headless smoke check (exit 0/1)
 windfall list app.py                              list Scene/Component subclasses (AST)
 windfall help | --help | --version
@@ -125,8 +126,10 @@ keeps a live project count.
 ## Examples
 
 - `examples/menu.py` — `ListView` navigation inside a `Column` layout.
-- `examples/bouncer.py` — a custom `Ball` component animated by scene
-  tweens that bounce back and forth.
+- `examples/bouncer.py` — a ball that arcs between the floor and the
+  ceiling forever, chaining `Motion` steps in a `Sequence`.
+- `examples/animation.py` — three dots racing under different easings and
+  a yellow orbiter squaring around its board.
 - `examples/snake.py` — a tiny grid game with deterministic `update(dt)`
   movement, arrow steering, and Enter to restart.
 
