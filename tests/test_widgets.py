@@ -156,6 +156,14 @@ class TestTextInput:
         field.handle(key("X"))
         assert field.value == "aXb"
 
+    def test_set_value_replaces_text_and_parks_cursor(self) -> None:
+        field = TextInput("old")
+        field.set_value("new")
+        assert field.value == "new"
+        field.focus(True)
+        field.handle(key("!"))
+        assert field.value == "new!"  # cursor sits at the end after set_value
+
     def test_submit_on_activate(self) -> None:
         submitted: list[str] = []
         field = TextInput("hey", on_submit=submitted.append)

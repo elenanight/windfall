@@ -9,17 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Placed widgets can be renamed and reseeded: the widget add/edit
-  palette gains id and text fields, so a Label gets a stable id and its
-  own content. The id and text persist in widget specs in
-  `.windfallrc.json` and round-trip through app rebuilds; Edit/Remove
-  listings show the widget id.
-
-### Changed
-
-- `AddWidget.on_add` and `fits` now deliver and precheck `(id, text)`
-  after `(kind, placement, stretch)`; `Engine.make_widget` accepts `id`
-  and `text`; every `Component` carries an `id`. (`breaking`, semver 0.3.0)
+- None yet.
 
 ## [0.2.5] - 2026-09-21
 

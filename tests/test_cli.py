@@ -544,3 +544,62 @@ def test_scaffolded_app_edits_header_in_place(tmp_path: Path) -> None:
     assert any("built with windfall" in line for line in rendered)
     assert any("Build your app here." in line for line in rendered)
     assert not any("New label" in line for line in rendered)
+
+
+def test_scaffolded_app_persists_widget_id_and_text(tmp_path: Path) -> None:
+    import importlib.util
+
+    from windfall import Compositor, Engine
+    from windfall.events import ACTIVATE
+    from windfall.scene import focusables
+    from windfall.widgets import AddWidget, Button, Label, ListView, RemoveWidget, TextInput
+
+    base = tmp_path / "work"
+    assert cli.main(["new", "myapp", "--dest", str(base)]) == 0
+    app_path = base / "project" / "myapp" / "app.py"
+    spec = importlib.util.spec_from_file_location("scaffolded_myapp", app_path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    config_path = app_path.parent / ".windfallrc.json"
+
+    engine = Engine()
+    scene = module.build(engine)
+    buttons = [w for w in focusables(scene.root) if isinstance(w, Button)]
+    buttons[0].focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+    adders = _find_all(scene.root, AddWidget)
+    assert len(adders) == 1
+    fields = [w for w in focusables(adders[0]) if isinstance(w, TextInput)]
+    fields[0].focus(True)
+    for char in "greeting":
+        fields[0].handle(_key(char))
+    fields[0].focus(False)
+    fields[1].focus(True)
+    for char in "Hello!":
+        fields[1].handle(_key(char))
+    fields[1].focus(False)
+    save, _ = [w for w in focusables(adders[0]) if isinstance(w, Button)]
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    save.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+    assert '"id": "greeting"' in config_path.read_text(encoding="utf-8")
+    assert '"text": "Hello!"' in config_path.read_text(encoding="utf-8")
+
+    rebuilt = module.build(Engine())  # a later boot rebuilds from the saved spec
+    rendered = Compositor().text(rebuilt)
+    assert any("Hello!" in line for line in rendered)
+    assert not any("New label" in line for line in rendered)
+    labels = [label for label in _find_all(rebuilt.root, Label) if label.id == "greeting"]
+    assert len(labels) == 1
+    assert labels[0].size() == Label("Hello!").size()
+
+    buttons = [w for w in focusables(rebuilt.root) if isinstance(w, Button)]
+    _, remove, _, _ = buttons
+    remove.focus(True)
+    assert rebuilt.handle(Event(ACTIVATE)) is True
+    removers = _find_all(rebuilt.root, RemoveWidget)
+    assert len(removers) == 1
+    entries = [w for w in focusables(removers[0]) if isinstance(w, ListView)]
+    assert entries[0]._items == ["greeting · left"]  # listing names the id

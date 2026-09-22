@@ -154,3 +154,7 @@ def test_make_widget_applies_id_and_text() -> None:
     divider = engine.make_widget("Divider", id="gap", text="ignored")
     assert divider.id == "gap"
     assert engine.make_widget("Label", id="m", text="").size() == Label("New label").size()
+    assert engine.make_widget("Button", id="b", text="").size() == Button("New button").size()
+    assert engine.make_widget("TextInput", id="t", text="").value == "New input"
+    assert engine.make_widget("ListView", id="options").id == "options"
+    assert engine.make_widget("Nope", id="x", text="hey").size() == Label("hey").size()

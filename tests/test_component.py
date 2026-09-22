@@ -32,6 +32,14 @@ def test_component_defaults() -> None:
     widget = Dummy()
     assert widget.focused is False
     assert widget.focusable is False
+    assert widget.id == ""
+
+
+def test_id_can_be_passed_or_assigned() -> None:
+    assert Dummy("greeting").id == "greeting"
+    widget = Dummy()
+    widget.id = "player"
+    assert widget.id == "player"
 
 
 def test_focus_toggles() -> None:
