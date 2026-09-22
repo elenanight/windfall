@@ -142,7 +142,7 @@ def _ensure_changelog_section(version: str) -> None:
 
     # Pull the body from ## [Unreleased]
     unreleased_pattern = re.compile(
-        rf"^## \[Unreleased\]\s*(?:-\s*[0-9-]+)?\n(.*?)(?=^## \[|\Z)",
+        r"^## \[Unreleased\]\s*(?:-\s*[0-9-]+)?\n(.*?)(?=^## \[|\Z)",
         re.MULTILINE | re.DOTALL,
     )
     unreleased_match = unreleased_pattern.search(text)
