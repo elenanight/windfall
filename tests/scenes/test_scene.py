@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
+from tests.helpers import move
 from windfall.anim import Tween, ease_linear
 from windfall.canvas import Canvas
 from windfall.component import Component
-from windfall.events import ACTIVATE, KEY, MOVE, Event
+from windfall.events import ACTIVATE, KEY, Event
 from windfall.geom import Rect, Vec2
 from windfall.layout import Center, Column
 from windfall.scene import Frame, FrameStack, Scene
 from windfall.widgets import Button, Label, ListView, Panel
-
-
-def move(direction: str) -> Event:
-    return Event(MOVE, {"direction": direction})
 
 
 class Updating(Component):

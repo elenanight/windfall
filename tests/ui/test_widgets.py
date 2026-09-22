@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+from tests.helpers import editor_buttons, find_all, hosted, key, move, render
 from windfall.canvas import Canvas
-from windfall.events import ACTIVATE, KEY, MOVE, Event
+from windfall.events import ACTIVATE, Event
 from windfall.geom import Rect, Vec2
-from windfall.layout import Column
 from windfall.primitives import Connector
-from windfall.scene import Scene, focusables
+from windfall.scene import focusables
 from windfall.widgets import (
     BORDER_COLORS,
     TEXT_COLORS,
@@ -25,23 +25,6 @@ from windfall.widgets import (
     RemoveWidget,
     TextInput,
 )
-
-
-def render(widget, width: int | None = None, height: int | None = None) -> list[str]:
-    size = widget.size()
-    width = width if width is not None else size.x
-    height = height if height is not None else size.y
-    canvas = Canvas(width, height)
-    widget.draw(canvas, Rect(0, 0, width, height))
-    return canvas.text()
-
-
-def key(char: str) -> Event:
-    return Event(KEY, {"key": char})
-
-
-def move(direction: str) -> Event:
-    return Event(MOVE, {"direction": direction})
 
 
 class TestLabel:
@@ -293,26 +276,6 @@ class TestHeader:
         ]
 
 
-def _editor_buttons(editor: HeaderEditor) -> list[Button]:
-    return [w for w in focusables(editor) if isinstance(w, Button)]
-
-
-def _find_all(node, kind: type) -> list:
-    """Walk a component tree the way event delivery does (children/box/child)."""
-    found = [node] if isinstance(node, kind) else []
-    for attr in ("children", "_box", "_child"):
-        value = getattr(node, attr, None)
-        if value is None:
-            continue
-        for kid in value if isinstance(value, list) else [value]:
-            found.extend(_find_all(kid, kind))
-    return found
-
-
-def _hosted(editor: HeaderEditor) -> Scene:
-    return Scene(root=Column().add(editor))
-
-
 class TestHeaderEditor:
     def test_preselects_given_colors(self) -> None:
         editor = HeaderEditor(text="Hi", border="red", fg="bright_green")
@@ -328,9 +291,9 @@ class TestHeaderEditor:
             fg="bright_green",
             on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
         )
-        save, _ = _editor_buttons(editor)
+        save, _ = editor_buttons(editor)
         save.focus(True)
-        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert hosted(editor).handle(Event(ACTIVATE)) is True
         assert saved == [("Hi", "red", "bright_green", True)]
 
     def test_save_follows_moved_selection(self) -> None:
@@ -345,9 +308,9 @@ class TestHeaderEditor:
         views[0].focus(True)
         views[0].handle(move("down"))
         views[0].focus(False)
-        save, _ = _editor_buttons(editor)
+        save, _ = editor_buttons(editor)
         save.focus(True)
-        _hosted(editor).handle(Event(ACTIVATE))
+        hosted(editor).handle(Event(ACTIVATE))
         assert saved[0][1] == BORDER_COLORS[BORDER_COLORS.index("red") + 1]
 
     def test_cancel_calls_on_cancel_only(self) -> None:
@@ -358,9 +321,9 @@ class TestHeaderEditor:
             on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
             on_cancel=lambda: cancelled.append(True),
         )
-        _, cancel = _editor_buttons(editor)
+        _, cancel = editor_buttons(editor)
         cancel.focus(True)
-        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert hosted(editor).handle(Event(ACTIVATE)) is True
         assert cancelled == [True]
         assert saved == []
 
@@ -375,9 +338,9 @@ class TestHeaderEditor:
         fields[0].handle(key("\x7f"))
         fields[0].handle(key("\x7f"))
         fields[0].focus(False)
-        save, _ = _editor_buttons(editor)
+        save, _ = editor_buttons(editor)
         save.focus(True)
-        _hosted(editor).handle(Event(ACTIVATE))
+        hosted(editor).handle(Event(ACTIVATE))
         assert saved[0][0] == "Hi"
         assert saved[0][3] is True
 
@@ -391,9 +354,9 @@ class TestHeaderEditor:
         views[2].focus(True)
         views[2].handle(move("down"))
         views[2].focus(False)
-        save, _ = _editor_buttons(editor)
+        save, _ = editor_buttons(editor)
         save.focus(True)
-        _hosted(editor).handle(Event(ACTIVATE))
+        hosted(editor).handle(Event(ACTIVATE))
         assert saved == [("Hi", "cyan", "white", False)]
 
     def test_visible_preselects_no(self) -> None:
@@ -407,7 +370,7 @@ class TestHeaderEditor:
         assert widths == {16}
 
     def test_links_boxes_with_available_shafts(self) -> None:
-        shafts = _find_all(HeaderEditor(text="Hi"), Connector)
+        shafts = find_all(HeaderEditor(text="Hi"), Connector)
         assert len(shafts) == 2
         assert all(shaft.state == "available" for shaft in shafts)
 
@@ -453,9 +416,9 @@ class TestFooterEditor:
             fg="yellow",
             on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
         )
-        save, _ = _editor_buttons(editor)
+        save, _ = editor_buttons(editor)
         save.focus(True)
-        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert hosted(editor).handle(Event(ACTIVATE)) is True
         assert saved == [("Bye", "magenta", "yellow", True)]
 
     def test_cancel_calls_on_cancel_only(self) -> None:
@@ -466,9 +429,9 @@ class TestFooterEditor:
             on_save=lambda text, border, fg, visible: saved.append((text, border, fg, visible)),
             on_cancel=lambda: cancelled.append(True),
         )
-        _, cancel = _editor_buttons(editor)
+        _, cancel = editor_buttons(editor)
         cancel.focus(True)
-        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert hosted(editor).handle(Event(ACTIVATE)) is True
         assert cancelled == [True]
         assert saved == []
 
@@ -482,9 +445,9 @@ class TestFooterEditor:
         views[2].focus(True)
         views[2].handle(move("down"))
         views[2].focus(False)
-        save, _ = _editor_buttons(editor)
+        save, _ = editor_buttons(editor)
         save.focus(True)
-        _hosted(editor).handle(Event(ACTIVATE))
+        hosted(editor).handle(Event(ACTIVATE))
         assert saved == [("Bye", "cyan", "white", False)]
 
     def test_columns_share_equal_widths_for_thirds(self) -> None:
@@ -493,7 +456,7 @@ class TestFooterEditor:
         assert widths == {16}
 
     def test_links_boxes_with_available_shafts(self) -> None:
-        shafts = _find_all(FooterEditor(text="Bye"), Connector)
+        shafts = find_all(FooterEditor(text="Bye"), Connector)
         assert len(shafts) == 2
         assert all(shaft.state == "available" for shaft in shafts)
 
@@ -518,9 +481,9 @@ class TestAddWidget:
         stretches.focus(True)
         stretches.handle(move("down"))
         stretches.focus(False)
-        save, _ = _editor_buttons(editor)
+        save, _ = editor_buttons(editor)
         save.focus(True)
-        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert hosted(editor).handle(Event(ACTIVATE)) is True
         assert added == [("TextInput", "sidebar", True, "", "")]
 
     def test_save_delivers_typed_id_and_text(self) -> None:
@@ -540,9 +503,9 @@ class TestAddWidget:
         for char in "Hello":
             fields[1].handle(key(char))
         fields[1].focus(False)
-        save, _ = _editor_buttons(editor)
+        save, _ = editor_buttons(editor)
         save.focus(True)
-        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert hosted(editor).handle(Event(ACTIVATE)) is True
         assert added == [("Label", "left", False, "greeting", "Hello")]
 
     def test_cancel_calls_on_cancel_only(self) -> None:
@@ -554,9 +517,9 @@ class TestAddWidget:
             ),
             on_cancel=lambda: cancelled.append(True),
         )
-        _, cancel = _editor_buttons(editor)
+        _, cancel = editor_buttons(editor)
         cancel.focus(True)
-        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert hosted(editor).handle(Event(ACTIVATE)) is True
         assert cancelled == [True]
         assert added == []
 
@@ -568,9 +531,9 @@ class TestAddWidget:
             ),
             fits=lambda kind, placement, stretch, id, text: "No room",
         )
-        save, _ = _editor_buttons(editor)
+        save, _ = editor_buttons(editor)
         save.focus(True)
-        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert hosted(editor).handle(Event(ACTIVATE)) is True
         assert added == []
         assert any("No room" in line for line in render(editor))
 
@@ -592,9 +555,9 @@ class TestRemoveWidget:
         views[0].focus(True)
         views[0].handle(move("down"))
         views[0].focus(False)
-        remove, _ = _editor_buttons(editor)
+        remove, _ = editor_buttons(editor)
         remove.focus(True)
-        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert hosted(editor).handle(Event(ACTIVATE)) is True
         assert removed == [1]
 
     def test_cancel_calls_on_cancel_only(self) -> None:
@@ -605,18 +568,18 @@ class TestRemoveWidget:
             on_remove=removed.append,
             on_cancel=lambda: cancelled.append(True),
         )
-        _, cancel = _editor_buttons(editor)
+        _, cancel = editor_buttons(editor)
         cancel.focus(True)
-        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert hosted(editor).handle(Event(ACTIVATE)) is True
         assert cancelled == [True]
         assert removed == []
 
     def test_empty_entries_remove_is_noop(self) -> None:
         removed: list[int] = []
         editor = RemoveWidget([], on_remove=removed.append)
-        remove, _ = _editor_buttons(editor)
+        remove, _ = editor_buttons(editor)
         remove.focus(True)
-        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert hosted(editor).handle(Event(ACTIVATE)) is True
         assert removed == []
 
 
@@ -627,7 +590,7 @@ class TestEditMenu:
         views = [w for w in focusables(menu) if isinstance(w, ListView)]
         views[0].focus(True)
         views[0].handle(move("down"))
-        assert _hosted(menu).handle(Event(ACTIVATE)) is True
+        assert hosted(menu).handle(Event(ACTIVATE)) is True
         assert picked == [1]
 
     def test_cancel_calls_on_cancel_only(self) -> None:
@@ -640,7 +603,7 @@ class TestEditMenu:
         )
         cancel = next(w for w in focusables(menu) if isinstance(w, Button))
         cancel.focus(True)
-        assert _hosted(menu).handle(Event(ACTIVATE)) is True
+        assert hosted(menu).handle(Event(ACTIVATE)) is True
         assert cancelled == [True]
         assert picked == []
 
@@ -649,7 +612,7 @@ class TestEditMenu:
         menu = EditMenu([], on_pick=picked.append)
         views = [w for w in focusables(menu) if isinstance(w, ListView)]
         views[0].focus(True)
-        assert _hosted(menu).handle(Event(ACTIVATE)) is True
+        assert hosted(menu).handle(Event(ACTIVATE)) is True
         assert picked == []
 
 
