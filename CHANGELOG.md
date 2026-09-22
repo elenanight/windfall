@@ -15,7 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- None yet.
+- `id` and `text` fields for placed widgets in the Add palette, reseeding
+  the editor on reopen and persisting both to config for restoration on
+  boot.
+- Project count and total-size readout in the project menu sidebar.
+- Guide labels in scaffolded apps hide once widgets are placed.
+- `N`/`O`/`D`/`A`/`X` hotkeys for project menu actions.
+- Dependabot tracking for GitHub Actions alongside Python dependencies.
+
+### Changed
+
+- Scaffolded app shortcuts reworked to a QWER cluster: `W` add, `R`
+  remove, `E` edit, `Q` quit.
+- Project menu slimmed to fit with the size readout alongside.
+- Scaffold README keys line refreshed to match the new hotkeys.
+- Tests grouped by area and converted to class-based suites.
+- CI actions modernized to current majors on a pinned `ubuntu-24.04`
+  runner.
 
 ## [0.2.5] - 2026-09-21
 
