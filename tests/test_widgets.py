@@ -156,6 +156,14 @@ class TestTextInput:
         field.handle(key("X"))
         assert field.value == "aXb"
 
+    def test_set_value_replaces_text_and_parks_cursor(self) -> None:
+        field = TextInput("old")
+        field.set_value("new")
+        assert field.value == "new"
+        field.focus(True)
+        field.handle(key("!"))
+        assert field.value == "new!"  # cursor sits at the end after set_value
+
     def test_submit_on_activate(self) -> None:
         submitted: list[str] = []
         field = TextInput("hey", on_submit=submitted.append)
@@ -494,7 +502,9 @@ class TestAddWidget:
     def test_save_delivers_kind_placement_and_stretch(self) -> None:
         added: list[tuple] = []
         editor = AddWidget(
-            on_add=lambda kind, placement, stretch: added.append((kind, placement, stretch))
+            on_add=lambda kind, placement, stretch, id, text: added.append(
+                (kind, placement, stretch, id, text)
+            )
         )
         kinds, places, stretches = [w for w in focusables(editor) if isinstance(w, ListView)]
         kinds.focus(True)
@@ -511,13 +521,37 @@ class TestAddWidget:
         save, _ = _editor_buttons(editor)
         save.focus(True)
         assert _hosted(editor).handle(Event(ACTIVATE)) is True
-        assert added == [("TextInput", "sidebar", True)]
+        assert added == [("TextInput", "sidebar", True, "", "")]
+
+    def test_save_delivers_typed_id_and_text(self) -> None:
+        added: list[tuple] = []
+        editor = AddWidget(
+            on_add=lambda kind, placement, stretch, id, text: added.append(
+                (kind, placement, stretch, id, text)
+            )
+        )
+        fields = [w for w in focusables(editor) if isinstance(w, TextInput)]
+        assert len(fields) == 2
+        fields[0].focus(True)
+        for char in "greeting":
+            fields[0].handle(key(char))
+        fields[0].focus(False)
+        fields[1].focus(True)
+        for char in "Hello":
+            fields[1].handle(key(char))
+        fields[1].focus(False)
+        save, _ = _editor_buttons(editor)
+        save.focus(True)
+        assert _hosted(editor).handle(Event(ACTIVATE)) is True
+        assert added == [("Label", "left", False, "greeting", "Hello")]
 
     def test_cancel_calls_on_cancel_only(self) -> None:
         added: list[tuple] = []
         cancelled: list[bool] = []
         editor = AddWidget(
-            on_add=lambda kind, placement, stretch: added.append((kind, placement, stretch)),
+            on_add=lambda kind, placement, stretch, id, text: added.append(
+                (kind, placement, stretch, id, text)
+            ),
             on_cancel=lambda: cancelled.append(True),
         )
         _, cancel = _editor_buttons(editor)
@@ -529,8 +563,10 @@ class TestAddWidget:
     def test_refusal_stays_open_with_reason(self) -> None:
         added: list[tuple] = []
         editor = AddWidget(
-            on_add=lambda kind, placement, stretch: added.append((kind, placement, stretch)),
-            fits=lambda kind, placement, stretch: "No room",
+            on_add=lambda kind, placement, stretch, id, text: added.append(
+                (kind, placement, stretch, id, text)
+            ),
+            fits=lambda kind, placement, stretch, id, text: "No room",
         )
         save, _ = _editor_buttons(editor)
         save.focus(True)
@@ -625,6 +661,16 @@ class TestAddWidgetPreset:
         assert kinds.selection == 3
         assert places.selection == 4
         assert stretches.selection == 1
+
+    def test_preset_fills_reused_editor(self) -> None:
+        editor = AddWidget()
+        editor.preset("Button", "left", False, id="hi", text="click me")
+        kinds, places, stretches = [w for w in focusables(editor) if isinstance(w, ListView)]
+        fields = [w for w in focusables(editor) if isinstance(w, TextInput)]
+        assert kinds.selection == 1
+        assert places.selection == 0
+        assert stretches.selection == 0
+        assert [field.value for field in fields] == ["hi", "click me"]
 
 
 class TestHotkey:
