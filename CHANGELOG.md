@@ -19,7 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nested containers no longer tick their widgets twice per frame, so
   components inside a `Stack`, `Center`, or similar update exactly once.
 
-## [Unreleased]
+## [0.2.8] - 2026-09-22
+
+### Added
+### Added
+-
 
 ### Added
 
