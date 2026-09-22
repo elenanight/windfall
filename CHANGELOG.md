@@ -9,13 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- None yet.
+- `windfall example snake`: the bundled grid game returns as a clean
+  rewrite — steer with the arrows, grow on food, and restart after a crash.
+
+### Fixed
+
+- Nested containers no longer tick their widgets twice per frame, so
+  components inside a `Stack`, `Center`, or similar update exactly once.
 
 ### Removed
 
-- The bundled `snake` example is pulled from the command line and docs so a
-  rewrite can land as a follow-up release. Its tests are removed with it.
-  `windfall example snake` now reports an unknown example (exit code 2).
+- None.
 
 ## [0.2.6] - 2026-09-22
 

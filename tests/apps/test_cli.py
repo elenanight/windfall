@@ -288,6 +288,7 @@ class TestAliases:
         assert "menu" in out
         assert "bouncer" in out
         assert "animation" in out
+        assert "snake" in out
 
 
 class TestExampleCommand:

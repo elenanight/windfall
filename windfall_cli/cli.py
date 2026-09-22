@@ -49,7 +49,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--menu", action="store_true", help="open the project manager (alias for `menu`)")
     parser.add_argument("--check", action="store_true", help="headless smoke check (alias for `check`)")
     parser.add_argument("--list", metavar="PATH", default=None, help="list scene classes in a file (alias for `list`)")
-    parser.add_argument("--example", metavar="NAME", default=None, help="run a bundled example: menu, bouncer, animation")
+    parser.add_argument("--example", metavar="NAME", default=None, help="run a bundled example: menu, bouncer, animation, snake")
     parser.add_argument("--examples", action="store_true", help="list the bundled examples")
     parser.add_argument("--headless", action="store_true", help="step without a terminal (with --demo, --example)")
     parser.add_argument("--ticks", type=int, default=None, help="ticks for headless runs")
@@ -77,7 +77,7 @@ def build_parser() -> argparse.ArgumentParser:
     cmd_menu.add_argument("--dir", default=None, help="parent directory (default: current dir; scans DIR/project)")
 
     cmd_example = sub.add_parser("example", help="run a bundled example")
-    cmd_example.add_argument("name", choices=["menu", "bouncer", "animation"])
+    cmd_example.add_argument("name", choices=["menu", "bouncer", "animation", "snake"])
     cmd_example.add_argument("--headless", action="store_true", help="step without a terminal")
     cmd_example.add_argument("--ticks", type=int, default=120, help="ticks for --headless")
 
