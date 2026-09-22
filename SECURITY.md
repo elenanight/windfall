@@ -10,10 +10,10 @@ older than the window are end-of-life and will not receive patches:
 | Version  | Supported          |
 | -------- | ------------------ |
 
+| 0.2.7    | :white_check_mark: |
 | 0.2.6    | :white_check_mark: |
 | 0.2.5    | :white_check_mark: |
-| 0.2.4    | :white_check_mark: |
-| <= 0.2.3 | :x:               |
+| <= 0.2.4 | :x:               |
 
 The window is the latest release plus the two prior releases (3 total), sliding on every cut.
 <!-- security:end -->
