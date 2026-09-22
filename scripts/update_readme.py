@@ -33,8 +33,12 @@ BADGES_END = "<!-- badges:end -->"
 
 DEFAULT_SLUG = "elenanight/windfall"
 REPO_URL = "https://github.com/elenanight/windfall"
+RELEASES_URL = REPO_URL + "/releases"
+COMMITS_URL = REPO_URL + "/commits"
+PYTHON_DOWNLOADS = "https://www.python.org/downloads/"
 CHANGELOG_URL = REPO_URL + "/blob/main/CHANGELOG.md"
 ACTIONS_URL = REPO_URL + "/actions"
+WORKFLOW_URL = REPO_URL + "/actions/workflows/ci.yml"
 DEPENDABOT_URL = REPO_URL + "/security/dependabot"
 
 
@@ -51,15 +55,15 @@ def build_badges(slug: str, version: str) -> str:
     first, then toolchain metadata with python next to dependencies.
     """
     first = [
-        f"[![version](https://img.shields.io/badge/version-{version}-blue)]({REPO_URL})",
-        f"[![stable](https://img.shields.io/github/actions/workflow/status/{slug}/ci.yml?branch=main&label=stable)]({ACTIONS_URL})",
-        f"[![dev](https://img.shields.io/github/actions/workflow/status/{slug}/ci.yml?branch=dev&label=dev)]({ACTIONS_URL})",
+        f"[![version](https://img.shields.io/badge/version-{version}-blue)]({RELEASES_URL})",
+        f"[![stable](https://img.shields.io/github/actions/workflow/status/{slug}/ci.yml?branch=main&label=stable)]({WORKFLOW_URL}?query=branch%3Amain)",
+        f"[![dev](https://img.shields.io/github/actions/workflow/status/{slug}/ci.yml?branch=dev&label=dev)]({WORKFLOW_URL}?query=branch%3Adev)",
         f"[![changelog](https://img.shields.io/badge/latest-changelog-orange)]({CHANGELOG_URL})",
     ]
     second = [
-        f"[![python](https://img.shields.io/badge/python-3.14-3776AB)]({REPO_URL})",
+        f"[![python](https://img.shields.io/badge/python-3.14-3776AB)]({PYTHON_DOWNLOADS})",
         f"[![dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-green)]({DEPENDABOT_URL})",
-        f"[![last commit](https://img.shields.io/github/last-commit/{slug})]({REPO_URL})",
+        f"[![last commit](https://img.shields.io/github/last-commit/{slug})]({COMMITS_URL})",
     ]
     body = "\n".join(first) + "\n\n" + "\n".join(second)
     return BADGES_START + "\n" + body + "\n" + BADGES_END

@@ -1,14 +1,14 @@
 # Windfall
 
 <!-- badges:start -->
-[![version](https://img.shields.io/badge/version-0.2.6-blue)](https://github.com/elenanight/windfall)
-[![stable](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=main&label=stable)](https://github.com/elenanight/windfall/actions)
-[![dev](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=dev&label=dev)](https://github.com/elenanight/windfall/actions)
+[![version](https://img.shields.io/badge/version-0.2.6-blue)](https://github.com/elenanight/windfall/releases)
+[![stable](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=main&label=stable)](https://github.com/elenanight/windfall/actions/workflows/ci.yml?query=branch%3Amain)
+[![dev](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=dev&label=dev)](https://github.com/elenanight/windfall/actions/workflows/ci.yml?query=branch%3Adev)
 [![changelog](https://img.shields.io/badge/latest-changelog-orange)](https://github.com/elenanight/windfall/blob/main/CHANGELOG.md)
 
-[![python](https://img.shields.io/badge/python-3.14-3776AB)](https://github.com/elenanight/windfall)
+[![python](https://img.shields.io/badge/python-3.14-3776AB)](https://www.python.org/downloads/)
 [![dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-green)](https://github.com/elenanight/windfall/security/dependabot)
-[![last commit](https://img.shields.io/github/last-commit/elenanight/windfall)](https://github.com/elenanight/windfall)
+[![last commit](https://img.shields.io/github/last-commit/elenanight/windfall)](https://github.com/elenanight/windfall/commits)
 <!-- badges:end -->
 
 A class-based TUI compositor and engine for building terminal apps and games
