@@ -5,10 +5,12 @@
 Only the latest release receives security fixes. All earlier releases are
 end-of-life and will not receive patches:
 
+<!-- security:start -->
 | Version  | Supported          |
 | -------- | ------------------ |
 | 0.2.6    | :white_check_mark: |
 | <= 0.2.5 | :x:                |
+<!-- security:end -->
 
 ## Reporting a Vulnerability
 
