@@ -13,7 +13,7 @@ import random
 from windfall import Column, Component, Engine, Label, Rect, Scene, Stack, Style, Text, Vec2
 from windfall.events import ACTIVATE, MOVE
 
-_TICK = 0.12
+_TICK = 0.2
 
 _DIRECTIONS = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
 
