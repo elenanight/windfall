@@ -24,13 +24,16 @@ wiki once it exists.
 
 - **Project manager TUI** *(released in 0.2.5)* — browse, open, archive,
   and delete apps without leaving the terminal.
-- **Boot splash** *(in progress)* — ASCII logo fade-in with a progress
-  bar that lands in the project menu.
+- **Boot splash** *(released in 0.2.7)* — ASCII logo fade-in with a
+  progress bar that lands in the project menu; any key skips straight
+  to the project menu.
 - **Animation release** *(released in 0.2.6)* — `Motion` and `Sequence`
   motion primitives plus an easing showcase, runnable via the CLI.
 - **Snake** *(rebuilt in 2.7)* — a clean grid game: steer with the
   arrows, grow on food, die on walls or yourself, and restart with Enter.
-- **Widget guides** *(planned)* — per-widget usage docs in the wiki.
+- **Widget guides** *(planned for 0.2.9)* — per-widget usage docs in the
+  wiki. The widget guide is now available at `wiki/welcome.md` and
+  `https://github.com/elenanight/windfall/wiki/welcome.md`.
 - **Vember OS** *(long term)* — a node-based OS rendering through
   Windfall as an imported package.
 
