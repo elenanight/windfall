@@ -47,7 +47,9 @@ cd project/myapp && uv run python app.py # run it
 Interactive primitives for building apps — full catalog in the
 [widget guide](wiki/welcome.md):
 
-<!-- widgets:start -->**Label**, **TextInput**, **Header**, **Footer**, **Button**, **Hotkey**, **ListView**, **HeaderEditor**, **FooterEditor**, **AddWidget**, **RemoveWidget**, **EditMenu**<!-- widgets:end -->
+<!-- widgets:start -->
+**Label**, **TextInput**, **Header**, **Footer**, **Button**, **Hotkey**, **ListView**, **HeaderEditor**, **FooterEditor**, **AddWidget**, **RemoveWidget**, **EditMenu**
+<!-- widgets:end -->
 
 ## Scaffolded apps
 
