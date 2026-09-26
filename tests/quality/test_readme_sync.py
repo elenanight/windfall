@@ -174,9 +174,9 @@ class TestSyncWidgets:
         welcome = tmp_path / "welcome.md"
         assert update_widgets(readme, welcome) is True
         text = readme.read_text(encoding="utf-8")
-        assert "`Label`, `TextInput`" in text
+        assert "``Label``, ``TextInput``" in text
         assert "`Old`" not in text
-        assert "`Panel`" not in text
+        assert "``Panel``" not in text
 
     def test_is_idempotent(self, tmp_path) -> None:
         _write_tree(tmp_path)
