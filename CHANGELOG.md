@@ -5,20 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.7] - 2026-09-22
-
-### Added
-
-- Boot splash: the project menu fades in an ASCII windmill logo over a
-  progress bar before landing in the menu; any key skips straight there.
-- `windfall example snake`: the bundled grid game returns as a clean
-  rewrite — steer with the arrows, grow on food, and restart after a crash.
-
-### Fixed
-
-- Nested containers no longer tick their widgets twice per frame, so
-  components inside a `Stack`, `Center`, or similar update exactly once.
-
 ## [0.2.9] - 2026-09-22
 
 ### Added
@@ -31,22 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Roadmap: boot splash released in 0.2.7; widget guides planned for 0.2.9
-
-### Fixed
-
-- Nested containers no longer tick their widgets twice per frame
-- Security table: emoji ✅/❌, vertical rendering
-- CHANGELOG: auto-promotion from `## [Unreleased]`
-
-- Wiki guide: comprehensive widget reference, now available at `wiki/welcome.md`
-  and `https://github.com/elenanight/windfall/wiki/welcome.md`
-- Auto-generated API reference in `wiki/api/`
-- CI: docs-check job added to verify API docs
-- Wiki: separate `windfall.wiki.git` repo archived; main repo `wiki/` is source of truth
-
-### Changed
-
-- Roadmap: boot splash released in 0.2.7; widget guides planned for 0.2.9
 - Wiki: consolidated to main repo `wiki/` directory
 
 ### Fixed
@@ -54,6 +24,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nested containers no longer tick their widgets twice per frame
 - Security table: emoji ✅/❌, vertical rendering
 - CHANGELOG: auto-promotion from `## [Unreleased]`
+
+## [0.2.8] - 2026-09-22
+
+### Added
+
+- `VERSION` file as the version source of truth, kept in sync with
+  `pyproject.toml`, `windfall/__init__.py`, and the README badge.
+- Release tooling: sliding SECURITY window plus CHANGELOG auto-promotion
+  from `## [Unreleased]` when cutting a release.
+
+### Changed
+
+- CI promote job simplified — no `PROMOTE_TOKEN` dependency; `dev`
+  pushes auto-merge `dev → main`.
+
+### Fixed
+
+- SECURITY table rendering: emoji ✅/❌ instead of shortcodes, no blank
+  line, vertical table.
+- Redundant f-string prefix on the regex in `_ensure_changelog_section`.
 
 ## [0.2.7] - 2026-09-22
 
