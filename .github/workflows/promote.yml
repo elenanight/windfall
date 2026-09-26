@@ -37,8 +37,7 @@ jobs:
           REPO="${{ github.repository }}"
           OWNER="${REPO%%/*}"
           find_pr() {
-            NUM=$(gh api "repos/$REPO/pulls?head=$OWNER:dev&base=main&state=open" --jq '.[0].number' 2>/dev/null)
-            [ "$NUM" != "null" ] && [ -n "$NUM" ] && echo "$NUM"
+            gh api "repos/$REPO/pulls?head=$OWNER:dev&base=main&state=open" 2>/dev/null | grep -o '"number":[0-9]*' | head -n 1 | grep -o '[0-9]*' || true
           }
           PR=$(find_pr)
           if [ -z "$PR" ]; then
