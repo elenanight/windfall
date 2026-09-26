@@ -1,6 +1,6 @@
 # Windfall Widget Guide
 
-Welcome to the Windfall widget documentation. This page lists all available widgets you can use in your project editor, along with their purpose and basic usage.
+Welcome to the Windfall widget documentation. This page lists all available widgets you can use in your project editor, along with their purpose and basic usage, and serves as the landing page for the wiki.
 
 ## Available Widgets
 
@@ -56,6 +56,18 @@ If you want to add a custom widget:
 3. Add the widget to the Add palette by editing the scaffold config or creating a new scaffold template.
 4. The widget will appear in the Add palette's widget list automatically.
 
+## Documentation
+
+Full documentation is available in the wiki:
+
+- **[Getting Started](wiki/getting-started/installation.md)** — Installation, quickstart, project manager
+- **[Core Concepts](wiki/core-concepts/architecture.md)** — Architecture, components, layouts, animations, focus
+- **[Guides](wiki/guides/)** — Custom widgets, theming, keybindings, scaffolding, testing
+- **[Examples](wiki/examples.md)** — Built-in examples: animation, snake, bouncer
+- **[Recipes](wiki/examples/recipes.md)** — Modal dialog, focus cycle, form validation
+- **[Contributing](wiki/contributing.md)** — How to contribute, code style, test runner
+- **[Roadmap](wiki/roadmap.md)** — What's shipped, what's planned
+
 ---
 
-*This guide lives in the wiki. For the latest updates, check the wiki on GitHub.*
+*This guide lives in the wiki. For the latest updates, check the wiki on GitHub: `https://github.com/elenanight/windfall/wiki`.*
