@@ -27,9 +27,10 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    run: |
-      echo "Running check on main"
-      
+    steps:
+      - run: |
+          echo "Running check on main"
+
   promote:
     needs: test
     if: github.ref == 'refs/heads/dev'
