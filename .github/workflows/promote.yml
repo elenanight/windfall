@@ -34,10 +34,16 @@ jobs:
         with:
           fetch-depth: 0
       - run: |
-          PR=$(gh pr list --head dev --base main --json number --jq '.[0].number')
-          if [ -z "$PR" ] || [ "$PR" = "null" ]; then
-            PR=$(gh pr create --base main --head dev --title "chore: promote dev to main" --body "Automated promotion — merges on green." --json number --jq '.number')
+          LINE=$(gh pr list --head dev --base main 2>/dev/null | head -n 1)
+          case "$LINE" in
+            \#*) PR=$(echo "$LINE" | awk '{print $1}' | tr -d '#');;
+            *) PR="";;
+          esac
+          if [ -z "$PR" ]; then
+            URL=$(gh pr create --base main --head dev --title "chore: promote dev to main" --body "Automated promotion — merges on green.")
+            PR=${URL##*/}
           fi
-          gh pr merge "$PR" --auto --merge
+          gh pr checks "$PR" --watch
+          gh pr merge "$PR" --merge
         env:
           GH_TOKEN: ${{ github.token }}
