@@ -220,6 +220,30 @@ def ensure_gh() -> bool:
         return False
 
 
+def tag_exists(version: str) -> bool:
+    """True if the ``v<version>`` tag already exists locally."""
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", f"refs/tags/v{version}"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=ROOT,
+    )
+    return result.returncode == 0
+
+
+def release_exists(version: str) -> bool:
+    """True if the ``v<version>`` GitHub release already exists."""
+    result = subprocess.run(
+        ["gh", "release", "view", f"v{version}"],
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=ROOT,
+    )
+    return result.returncode == 0
+
+
 def changelog_release_body(version: str) -> str:
     section = changelog_section(version)
     if not section:
@@ -252,26 +276,32 @@ def apply_cut(version: str, dry_run: bool = False) -> None:
         print("SECURITY window already up to date")
 
     body = changelog_release_body(version)
-    subprocess.run(
-        ["git", "tag", "-a", f"v{version}", "-m", f"windfall {version}"],
-        check=True,
-        cwd=ROOT,
-    )
-    subprocess.run(["git", "push", "origin", f"v{version}"], check=True, cwd=ROOT)
-    subprocess.run(
-        [
-            "gh",
-            "release",
-            "create",
-            f"v{version}",
-            "--title",
-            f"windfall {version}",
-            "--notes",
-            body,
-        ],
-        check=True,
-        cwd=ROOT,
-    )
+    if tag_exists(version):
+        print(f"tag v{version} already exists, skipping tag+push")
+    else:
+        subprocess.run(
+            ["git", "tag", "-a", f"v{version}", "-m", f"windfall {version}"],
+            check=True,
+            cwd=ROOT,
+        )
+        subprocess.run(["git", "push", "origin", f"v{version}"], check=True, cwd=ROOT)
+    if release_exists(version):
+        print(f"GitHub release v{version} already exists, skipping create")
+    else:
+        subprocess.run(
+            [
+                "gh",
+                "release",
+                "create",
+                f"v{version}",
+                "--title",
+                f"windfall {version}",
+                "--notes",
+                body,
+            ],
+            check=True,
+            cwd=ROOT,
+        )
     print(f"published GitHub release v{version} (window slid to {version})")
 
 
