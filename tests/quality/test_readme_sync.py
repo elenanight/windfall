@@ -12,12 +12,16 @@ from scripts.update_readme import (
     DEFAULT_SLUG,
     ROADMAP_END,
     ROADMAP_START,
+    WIDGETS_END,
+    WIDGETS_START,
     build_badges,
     project_version,
     repo_slug,
     sync_init_version,
     update_readme,
     update_roadmap,
+    update_widgets,
+    widget_names,
 )
 from scripts.update_readme import (
     main as sync_main,
@@ -35,11 +39,28 @@ def _sample_readme() -> str:
         f"{ROADMAP_START}\n"
         "Old roadmap body.\n"
         f"{ROADMAP_END}\n"
+        "\n| Widgets | "
+        f"{WIDGETS_START}`Old`\n"
+        f"{WIDGETS_END} | interactive |\n"
     )
 
 
 def _sample_roadmap() -> str:
     return "# Roadmap\n\nNew roadmap body.\n"
+
+
+def _sample_welcome() -> str:
+    return (
+        "# Guide\n\n"
+        "## Available Widgets\n\n"
+        "### Labels & Inputs\n\n"
+        "- **Label** — text.\n"
+        "- **TextInput** — input.\n"
+        "\n### Layout & Containers\n\n"
+        "- **Panel** — box.\n"
+        "\n## How to Use\n\n"
+        "Steps.\n"
+    )
 
 
 def _write_tree(tmp_path, version: str = "0.1.0") -> None:
@@ -49,6 +70,7 @@ def _write_tree(tmp_path, version: str = "0.1.0") -> None:
     tmp_path.joinpath("README.md").write_text(_sample_readme(), encoding="utf-8")
     tmp_path.joinpath("init.py").write_text('__version__ = "0.1.0"\n', encoding="utf-8")
     tmp_path.joinpath("roadmap.md").write_text(_sample_roadmap(), encoding="utf-8")
+    tmp_path.joinpath("welcome.md").write_text(_sample_welcome(), encoding="utf-8")
 
 
 class TestReadmeBadges:
@@ -141,6 +163,37 @@ class TestSyncRoadmap:
             update_roadmap(readme, roadmap)
 
 
+class TestSyncWidgets:
+    def test_names_follow_wiki_order_excluding_layouts(self, tmp_path) -> None:
+        _write_tree(tmp_path)
+        assert widget_names(tmp_path / "welcome.md") == ["Label", "TextInput"]
+
+    def test_embeds_wiki_names_in_table_cell(self, tmp_path) -> None:
+        _write_tree(tmp_path)
+        readme = tmp_path / "README.md"
+        welcome = tmp_path / "welcome.md"
+        assert update_widgets(readme, welcome) is True
+        text = readme.read_text(encoding="utf-8")
+        assert "`Label`, `TextInput`" in text
+        assert "`Old`" not in text
+        assert "`Panel`" not in text
+
+    def test_is_idempotent(self, tmp_path) -> None:
+        _write_tree(tmp_path)
+        readme = tmp_path / "README.md"
+        welcome = tmp_path / "welcome.md"
+        update_widgets(readme, welcome)
+        assert update_widgets(readme, welcome) is False
+
+    def test_requires_markers(self, tmp_path) -> None:
+        readme = tmp_path / "README.md"
+        welcome = tmp_path / "welcome.md"
+        readme.write_text("# Windfall\n", encoding="utf-8")
+        welcome.write_text("# Guide\n", encoding="utf-8")
+        with pytest.raises(ValueError):
+            update_widgets(readme, welcome)
+
+
 class TestSyncVersion:
     def test_sync_init_updates_version(self, tmp_path) -> None:
         _write_tree(tmp_path)
@@ -159,5 +212,6 @@ class TestSyncVersion:
         monkeypatch.setattr("scripts.update_readme.README", tmp_path / "README.md")
         monkeypatch.setattr("scripts.update_readme.INIT", tmp_path / "init.py")
         monkeypatch.setattr("scripts.update_readme.ROADMAP", tmp_path / "roadmap.md")
+        monkeypatch.setattr("scripts.update_readme.WELCOME", tmp_path / "welcome.md")
         assert sync_main(["--check"]) == 1
         assert sync_main(["--check"]) == 0
