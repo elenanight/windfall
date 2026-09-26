@@ -9,10 +9,10 @@ older than the window are end-of-life and will not receive patches:
 <!-- security:start -->
 | Version  | Supported          |
 | -------- | ------------------ |
+| 0.2.9    | ✅ |
 | 0.2.8    | ✅ |
 | 0.2.7    | ✅ |
-| 0.2.6    | ✅ |
-| <= 0.2.5 | ❌ |
+| <= 0.2.6 | ❌ |
 <!-- security:end -->
 
 ## Reporting a Vulnerability

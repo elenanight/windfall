@@ -47,6 +47,3 @@ jobs:
       - run: uv run python scripts/cut_release.py --apply
         env:
           GH_TOKEN: ${{ github.token }}
-      - run: |
-          git add SECURITY.md
-          git diff --cached --quiet || git commit -m "chore(release): slide SECURITY window" && git push origin HEAD:main
