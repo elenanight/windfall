@@ -1,4 +1,4 @@
-name: promote
+name: auto-promote
 on:
   push:
     branches: [dev]
@@ -20,7 +20,7 @@ jobs:
       - run: uv run python scripts/update_readme.py --check
       - run: uv run python scripts/cut_release.py --check
 
-  promote:
+  merge-dev-to-main:
     needs: test
     runs-on: ubuntu-24.04
     concurrency:

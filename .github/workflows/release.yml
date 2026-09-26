@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   workflow_run:
-    workflows: ["promote"]
+    workflows: ["auto-promote"]
     types: [completed]
     branches: [dev]
 
