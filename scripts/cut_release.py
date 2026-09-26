@@ -233,7 +233,11 @@ def tag_exists(version: str) -> bool:
 
 
 def release_exists(version: str) -> bool:
-    """True if the ``v<version>`` GitHub release already exists."""
+    """True if the ``v<version>`` GitHub release already exists.
+
+    Raises on auth/config errors so a missing token is never
+    mistaken for a missing release.
+    """
     result = subprocess.run(
         ["gh", "release", "view", f"v{version}"],
         capture_output=True,
@@ -241,7 +245,12 @@ def release_exists(version: str) -> bool:
         check=False,
         cwd=ROOT,
     )
-    return result.returncode == 0
+    if result.returncode == 0:
+        return True
+    output = (result.stdout + result.stderr).lower()
+    if "not found" in output or "could not find" in output or "no release" in output:
+        return False
+    raise RuntimeError(f"gh release view v{version} failed: {result.stderr.strip()}")
 
 
 def changelog_release_body(version: str) -> str:
