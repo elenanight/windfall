@@ -23,6 +23,13 @@ jobs:
       - run: uv run python scripts/update_readme.py --check
       - run: uv run python scripts/cut_release.py --check
 
+  check:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    run: |
+      echo "Running check on main"
+      
   promote:
     needs: test
     if: github.ref == 'refs/heads/dev'
@@ -45,7 +52,7 @@ jobs:
           git push origin main
 
   release:
-    needs: promote
+    needs: [test, check]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
