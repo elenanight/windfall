@@ -1,0 +1,41 @@
+name: promote
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - run: uv run pytest -q
+      - run: uv run ruff check .
+      - run: uv run python scripts/update_readme.py --check
+      - run: uv run python scripts/cut_release.py --check
+
+  promote:
+    needs: test
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: windfall-promote-main
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin dev main
+          git checkout main
+          git merge --no-edit origin/dev
+          git push origin main
