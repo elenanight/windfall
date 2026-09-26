@@ -35,29 +35,19 @@ A teaser of what's coming. Full detail for each item will live in the wiki once 
 ## Quick start
 
 ```bash
-uv sync
-uv run windfall demo                  # interactive demo
-uv run windfall menu                  # browse, open, and manage projects
-uv run windfall new myapp             # scaffold a new app into project/myapp
-cd project/myapp && uv run python app.py   # run it
-uv run python examples/animation.py  # or watch the animation showcase
-uv run python examples/snake.py      # or steer the grid snake
+uv sync                                  # install dependencies
+uv run windfall demo                     # interactive demo
+uv run windfall menu                     # browse and manage projects
+uv run windfall new myapp                # scaffold project/myapp
+cd project/myapp && uv run python app.py # run it
 ```
 
-## What's inside
+## Widget List
 
-Everything is a `Primitive` (a `size()` and a `draw(canvas, rect)`), so
-layers compose freely:
+Interactive primitives for building apps — full catalog in the
+[widget guide](wiki/welcome.md):
 
-| Layer | Types | Role |
-| --- | --- | --- |
-| Primitives | `Text`, `Spacer`, `Divider`, `Border`, `Box`, `Connector` | draw into a canvas |
-| Widgets | <!-- widgets:start -->`Label`, `TextInput`, `Header`, `Footer`, `Button`, `Hotkey`, `ListView`, `HeaderEditor`, `FooterEditor`, `AddWidget`, `RemoveWidget`, `EditMenu`<!-- widgets:end --> | interactive primitives |
-| Layout | `Container`, `Row`, `Column`, `Stack`, `Center` | position children (`Row` fills and weights available space on request) |
-| Animation | `Tween`, `Animation`, `Timeline`, `Clock` | deterministic motion |
-| Views | `Scene`, `Frame`, `FrameStack` | trees, focus, navigation |
-| Engine | `Engine`, `Compositor` | input -> events -> tick -> `rich.Live`; assembles bars and widgets |
-| Settings | `Config` | JSON settings with defaults fallback |
+<!-- widgets:start -->`Label`, `TextInput`, `Header`, `Footer`, `Button`, `Hotkey`, `ListView`, `HeaderEditor`, `FooterEditor`, `AddWidget`, `RemoveWidget`, `EditMenu`<!-- widgets:end -->
 
 ## Scaffolded apps
 
@@ -149,11 +139,8 @@ uv run pytest -q
 uv run ruff check .
 ```
 
-### Rule of ten
+### Method budget
 
-Every class may define at most 10 methods (excluding `__init__`). The test
-suite enforces this with an `ast`-based audit (`tests/budget.py`):
-
-- more than 10 methods -> `[BUDGET-ERROR]` and the test fails
-- 9-10 methods -> `[BUDGET-WARNING]` naming the class and methods
+Classes follow the [rule of ten](wiki/guides/rule-of-ten.md): at most 10
+methods each (excluding `__init__`), enforced by the test suite.
 
