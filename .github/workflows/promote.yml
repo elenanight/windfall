@@ -34,11 +34,11 @@ jobs:
         with:
           fetch-depth: 0
       - run: |
+          REPO="${{ github.repository }}"
+          OWNER="${REPO%%/*}"
           find_pr() {
-            LINE=$(gh pr list --head dev --base main 2>/dev/null | head -n 1)
-            case "$LINE" in
-              \#*) echo "$LINE" | awk '{print $1}' | tr -d '#';;
-            esac
+            NUM=$(gh api "repos/$REPO/pulls?head=$OWNER:dev&base=main&state=open" --jq '.[0].number' 2>/dev/null)
+            [ "$NUM" != "null" ] && [ -n "$NUM" ] && echo "$NUM"
           }
           PR=$(find_pr)
           if [ -z "$PR" ]; then
