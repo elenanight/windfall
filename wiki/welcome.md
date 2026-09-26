@@ -70,4 +70,4 @@ Full documentation is available in the wiki:
 
 ---
 
-*This guide lives in the wiki. For the latest updates, check the wiki on GitHub: `https://github.com/elenanight/windfall/wiki`.*
+*This guide lives in the [wiki on GitHub](https://github.com/elenanight/windfall/wiki).*
