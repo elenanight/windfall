@@ -19,9 +19,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nested containers no longer tick their widgets twice per frame, so
   components inside a `Stack`, `Center`, or similar update exactly once.
 
-## [0.2.8] - 2026-09-22
+## [0.2.9] - 2026-09-22
 
 ### Added
+
+- Wiki guide: comprehensive widget reference, now available at `wiki/welcome.md`
+  and `https://github.com/elenanight/windfall/wiki/welcome.md`
+- Auto-generated API reference in `wiki/api/`
+- Wiki: separate `windfall.wiki.git` repo archived; main repo `wiki/` is source of truth
+
+### Changed
+
+- Roadmap: boot splash released in 0.2.7; widget guides planned for 0.2.9
+
+### Fixed
+
+- Nested containers no longer tick their widgets twice per frame
+- Security table: emoji ✅/❌, vertical rendering
+- CHANGELOG: auto-promotion from `## [Unreleased]`
 
 - Wiki guide: comprehensive widget reference, now available at `wiki/welcome.md`
   and `https://github.com/elenanight/windfall/wiki/welcome.md`
