@@ -44,18 +44,10 @@ cd project/myapp && uv run python app.py # run it
 
 ## Widget List
 
-Everything is a `Primitive` (a `size()` and a `draw(canvas, rect)`), so
-layers compose freely:
+Interactive primitives for building apps — full catalog in the
+[widget guide](wiki/welcome.md):
 
-| Layer | Types | Role |
-| --- | --- | --- |
-| Primitives | `Text`, `Spacer`, `Divider`, `Border`, `Box`, `Connector` | draw into a canvas |
-| Widgets | <!-- widgets:start -->`Label`, `TextInput`, `Header`, `Footer`, `Button`, `Hotkey`, `ListView`, `HeaderEditor`, `FooterEditor`, `AddWidget`, `RemoveWidget`, `EditMenu`<!-- widgets:end --> | interactive primitives |
-| Layout | `Container`, `Row`, `Column`, `Stack`, `Center` | position children (`Row` fills and weights available space on request) |
-| Animation | `Tween`, `Animation`, `Timeline`, `Clock` | deterministic motion |
-| Views | `Scene`, `Frame`, `FrameStack` | trees, focus, navigation |
-| Engine | `Engine`, `Compositor` | input -> events -> tick -> `rich.Live`; assembles bars and widgets |
-| Settings | `Config` | JSON settings with defaults fallback |
+<!-- widgets:start -->`Label`, `TextInput`, `Header`, `Footer`, `Button`, `Hotkey`, `ListView`, `HeaderEditor`, `FooterEditor`, `AddWidget`, `RemoveWidget`, `EditMenu`<!-- widgets:end -->
 
 ## Scaffolded apps
 
