@@ -37,7 +37,7 @@ The following widgets are available for use in scaffolded apps via the project e
 
 - **AddWidget** — Palette widget for adding new widgets to the project content area. Supports placement options (left/center/right/full/sidebar) and persistence to config.
 - **RemoveWidget** — Panel for listing and deleting placed widgets.
-- **EditMenu** — Menu with shortcuts: `W` add, `R` remove, `E` edit, `Q` quit.
+- **EditMenu** — Menu with shortcuts: `W` add, `E` edit, `R` remove, `Q` quit.
 
 ## How to Use
 
@@ -60,13 +60,13 @@ If you want to add a custom widget:
 
 Full documentation is available in the wiki:
 
-- **[Getting Started](wiki/getting-started/installation.md)** — Installation, quickstart, project manager
-- **[Core Concepts](wiki/core-concepts/architecture.md)** — Architecture, components, layouts, animations, focus
-- **[Guides](wiki/guides/)** — Custom widgets, theming, keybindings, scaffolding, testing
-- **[Examples](wiki/examples.md)** — Built-in examples: animation, snake, bouncer
-- **[Recipes](wiki/examples/recipes.md)** — Modal dialog, focus cycle, form validation
-- **[Contributing](wiki/contributing.md)** — How to contribute, code style, test runner
-- **[Roadmap](wiki/roadmap.md)** — What's shipped, what's planned
+- **[Getting Started](getting-started/installation.md)** — Installation, quickstart, project manager
+- **[Core Concepts](core-concepts/architecture.md)** — Architecture, components, layouts, animations, focus
+- **[Guides](guides/)** — Custom widgets, theming, keybindings, scaffolding, testing
+- **[Examples](examples.md)** — Built-in examples: animation, snake, bouncer
+- **[Recipes](examples/recipes.md)** — Modal dialog, focus cycle, form validation
+- **[Contributing](contributing.md)** — How to contribute, code style, test runner
+- **[Roadmap](roadmap.md)** — What's shipped, what's planned
 
 ---
 
