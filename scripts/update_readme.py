@@ -30,11 +30,23 @@ PYPROJECT = ROOT / "pyproject.toml"
 README = ROOT / "README.md"
 INIT = ROOT / "windfall" / "__init__.py"
 ROADMAP = ROOT / "wiki" / "roadmap.md"
+WELCOME = ROOT / "wiki" / "welcome.md"
 
 BADGES_START = "<!-- badges:start -->"
 BADGES_END = "<!-- badges:end -->"
 ROADMAP_START = "<!-- roadmap:start -->"
 ROADMAP_END = "<!-- roadmap:end -->"
+WIDGETS_START = "<!-- widgets:start -->"
+WIDGETS_END = "<!-- widgets:end -->"
+
+# ``###`` sections of the wiki widget catalog that belong in the README
+# table. "Layout & Containers" is excluded: the README has its own Layout row.
+WIDGET_SECTIONS = (
+    "Labels & Inputs",
+    "Buttons & Controls",
+    "Lists & Views",
+    "Scaffold & Project Management",
+)
 
 DEFAULT_SLUG = "elenanight/windfall"
 REPO_URL = "https://github.com/elenanight/windfall"
@@ -130,6 +142,37 @@ def update_roadmap(readme_path: Path | None = None, roadmap_path: Path | None = 
     return True
 
 
+def widget_names(path: Path | None = None) -> list[str]:
+    """Widget names from the wiki catalog, in order, excluding layouts."""
+    text = (path or WELCOME).read_text(encoding="utf-8")
+    section = text.split("## Available Widgets", 1)[1].split("## How to Use", 1)[0]
+    names: list[str] = []
+    current: str | None = None
+    for line in section.splitlines():
+        if line.startswith("### "):
+            current = line[4:].strip()
+        elif line.startswith("- **") and current in WIDGET_SECTIONS:
+            names.append(line[4:].split("**", 1)[0])
+    return names
+
+
+def update_widgets(readme_path: Path | None = None, welcome_path: Path | None = None) -> bool:
+    """Sync the README Widgets table cell from the wiki catalog."""
+    readme = readme_path or README
+    text = readme.read_text(encoding="utf-8")
+    pattern = re.compile(
+        re.escape(WIDGETS_START) + r".*?" + re.escape(WIDGETS_END), re.DOTALL
+    )
+    if pattern.search(text) is None:
+        raise ValueError(f"README is missing {WIDGETS_START}…{WIDGETS_END}")
+    cell = ", ".join(f"`{name}`" for name in widget_names(welcome_path))
+    new_text = pattern.sub(WIDGETS_START + cell + WIDGETS_END, text)
+    if new_text == text:
+        return False
+    readme.write_text(new_text, encoding="utf-8")
+    return True
+
+
 def repo_slug() -> str:
     """Derive the owner/repo slug from the origin remote, if present.
 
@@ -180,13 +223,14 @@ def main(argv: list[str] | None = None) -> int:
     readme_changed = update_readme(version, slug)
     init_changed = sync_init_version(version)
     roadmap_changed = update_roadmap()
-    if readme_changed or init_changed or roadmap_changed:
+    widgets_changed = update_widgets()
+    if readme_changed or init_changed or roadmap_changed or widgets_changed:
         if args.check:
-            print("README badges, __version__, or roadmap are out of date — run scripts/update_readme.py")
+            print("README badges, __version__, roadmap, or widgets are out of date — run scripts/update_readme.py")
             return 1
-        print(f"updated README badges, __version__, and roadmap to windfall {version}")
+        print(f"updated README badges, __version__, roadmap, and widgets to windfall {version}")
     else:
-        print(f"README badges, __version__, and roadmap already match windfall {version}")
+        print(f"README badges, __version__, roadmap, and widgets already match windfall {version}")
     return 0
 
 
