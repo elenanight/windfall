@@ -3,26 +3,42 @@ name: release
 on:
   push:
     branches: [main]
+  workflow_run:
+    workflows: ["promote"]
+    types: [completed]
+    branches: [dev]
 
 permissions:
   contents: write
 
 jobs:
   check:
+    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
       - run: uv run python scripts/cut_release.py --check
 
   release:
     needs: check
+    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10.2.0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
       - run: uv run python scripts/cut_release.py --apply
