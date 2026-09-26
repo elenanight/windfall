@@ -74,31 +74,34 @@ connectors:
 - **Content section** — add widgets by palette, place them left, center,
   right, full width, or sidebar, and remove them the same way.
 
-## CLI
+## Commands
 
-```
-windfall new NAME [--template app] [--dest DIR] [--yes]   scaffold into DIR/project/NAME; asks to run it on a terminal (--yes skips that)
-windfall run [app.py]                             run a file (default: the demo)
-windfall demo [--headless] [--ticks N]            run the built-in demo
-windfall menu [--dir DIR]                         browse, open, archive, and delete projects
-windfall example NAME [--headless] [--ticks N]    run a bundled example (menu/bouncer/animation/snake)
-windfall check [--ticks N]                        headless smoke check (exit 0/1)
-windfall list app.py                              list Scene/Component subclasses (AST)
-windfall help | --help | --version
-```
+### Creating
 
-Every subcommand also has a shortcut flag:
+| Command | Description |
+| --- | --- |
+| `windfall new NAME [--template app] [--dest DIR] [--yes]` | scaffold into `DIR/project/NAME`; asks to run it (`--yes` skips that) |
 
-```
-windfall --create NAME [--template] [--dest]      ≡ windfall new
-windfall --run PATH                               ≡ windfall run
-windfall --demo [--headless] [--ticks]            ≡ windfall demo
-windfall --menu                                     ≡ windfall menu
-windfall --example NAME [--headless] [--ticks]    ≡ windfall example
-windfall --check [--ticks]                        ≡ windfall check
-windfall --list PATH                              ≡ windfall list
-windfall --examples                               list the bundled examples
-```
+### Running
+
+| Command | Description |
+| --- | --- |
+| `windfall run [app.py]` | run a file (default: the demo) |
+| `windfall demo [--headless] [--ticks N]` | run the built-in demo |
+| `windfall example NAME [--headless] [--ticks N]` | run a bundled example (`menu`/`bouncer`/`animation`/`snake`) |
+| `windfall check [--ticks N]` | headless smoke check (exit 0/1) |
+
+### Exploring
+
+| Command | Description |
+| --- | --- |
+| `windfall menu [--dir DIR]` | browse, open, archive, and delete projects |
+| `windfall list app.py` | list Scene/Component subclasses (AST) |
+| `windfall help \| --help \| --version` | show help / version |
+
+Every subcommand also has a shortcut flag (`--create` ≡ `new`, `--run`,
+`--demo`, `--menu`, `--example`, `--check`, `--list`), plus
+`windfall --examples` to list the bundled examples.
 
 `demo`, `check`, and every run share the same `Engine.step` code path, so a
 `--headless` pass is equivalent to a real terminal session.
