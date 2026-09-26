@@ -95,8 +95,7 @@ def support_rows(version: str) -> list[tuple[str, str | None]]:
 
 def build_support_block(version: str) -> str:
     """The SECURITY table between the markers (no trailing newline on marker)."""
-    header = "| Version  | Supported          |\n"
-    header += "| -------- | ------------------ |\n"
+    header = "| Version  | Supported          |\n| -------- | ------------------ |"
     lines = [f"| {label:<8} | {status} |" for label, status in support_rows(version)]
     return "\n".join([header, *lines])
 
