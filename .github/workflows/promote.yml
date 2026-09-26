@@ -34,15 +34,28 @@ jobs:
         with:
           fetch-depth: 0
       - run: |
-          LINE=$(gh pr list --head dev --base main 2>/dev/null | head -n 1)
-          case "$LINE" in
-            \#*) PR=$(echo "$LINE" | awk '{print $1}' | tr -d '#');;
-            *) PR="";;
-          esac
+          find_pr() {
+            LINE=$(gh pr list --head dev --base main 2>/dev/null | head -n 1)
+            case "$LINE" in
+              \#*) echo "$LINE" | awk '{print $1}' | tr -d '#';;
+            esac
+          }
+          PR=$(find_pr)
           if [ -z "$PR" ]; then
-            URL=$(gh pr create --base main --head dev --title "chore: promote dev to main" --body "Automated promotion — merges on green.")
-            PR=${URL##*/}
+            if URL=$(gh pr create --base main --head dev --title "chore: promote dev to main" --body "Automated promotion — merges on green." 2>/tmp/pr-err.txt); then
+              PR=${URL##*/}
+            elif grep -q "already exists" /tmp/pr-err.txt; then
+              for i in $(seq 1 12); do
+                sleep 10
+                PR=$(find_pr)
+                [ -n "$PR" ] && break
+              done
+            else
+              cat /tmp/pr-err.txt >&2
+              exit 1
+            fi
           fi
+          [ -n "$PR" ] || { echo "could not find or create promote PR" >&2; exit 1; }
           for i in $(seq 1 90); do
             if gh pr checks "$PR" 2>/dev/null | awk '$1=="test" && $2=="pass" {found=1} END{exit !found}'; then
               break
