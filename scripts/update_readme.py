@@ -165,7 +165,7 @@ def update_widgets(readme_path: Path | None = None, welcome_path: Path | None = 
     )
     if pattern.search(text) is None:
         raise ValueError(f"README is missing {WIDGETS_START}…{WIDGETS_END}")
-    cell = ", ".join(f"`{name}`" for name in widget_names(welcome_path))
+    cell = ", ".join(f"``{name}``" for name in widget_names(welcome_path))
     new_text = pattern.sub(WIDGETS_START + cell + WIDGETS_END, text)
     if new_text == text:
         return False
