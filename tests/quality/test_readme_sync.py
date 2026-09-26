@@ -10,11 +10,14 @@ from scripts.update_readme import (
     BADGES_END,
     BADGES_START,
     DEFAULT_SLUG,
+    ROADMAP_END,
+    ROADMAP_START,
     build_badges,
     project_version,
     repo_slug,
     sync_init_version,
     update_readme,
+    update_roadmap,
 )
 from scripts.update_readme import (
     main as sync_main,
@@ -28,7 +31,15 @@ def _sample_readme() -> str:
         "[![version](https://img.shields.io/badge/version-0.1.0-blue)]()\n"
         f"{BADGES_END}\n"
         "\nBody text.\n"
+        "\n## Roadmap\n\n"
+        f"{ROADMAP_START}\n"
+        "Old roadmap body.\n"
+        f"{ROADMAP_END}\n"
     )
+
+
+def _sample_roadmap() -> str:
+    return "# Roadmap\n\nNew roadmap body.\n"
 
 
 def _write_tree(tmp_path, version: str = "0.1.0") -> None:
@@ -37,6 +48,7 @@ def _write_tree(tmp_path, version: str = "0.1.0") -> None:
     )
     tmp_path.joinpath("README.md").write_text(_sample_readme(), encoding="utf-8")
     tmp_path.joinpath("init.py").write_text('__version__ = "0.1.0"\n', encoding="utf-8")
+    tmp_path.joinpath("roadmap.md").write_text(_sample_roadmap(), encoding="utf-8")
 
 
 class TestReadmeBadges:
@@ -102,6 +114,33 @@ class TestSyncUpdate:
             update_readme("0.1.0", "elenanight/windfall", readme)
 
 
+class TestSyncRoadmap:
+    def test_embeds_wiki_roadmap_body(self, tmp_path) -> None:
+        _write_tree(tmp_path)
+        readme = tmp_path / "README.md"
+        roadmap = tmp_path / "roadmap.md"
+        assert update_roadmap(readme, roadmap) is True
+        text = readme.read_text(encoding="utf-8")
+        assert "New roadmap body." in text
+        assert "Old roadmap body." not in text
+        assert "Body text." in text
+
+    def test_is_idempotent(self, tmp_path) -> None:
+        _write_tree(tmp_path)
+        readme = tmp_path / "README.md"
+        roadmap = tmp_path / "roadmap.md"
+        update_roadmap(readme, roadmap)
+        assert update_roadmap(readme, roadmap) is False
+
+    def test_requires_markers(self, tmp_path) -> None:
+        readme = tmp_path / "README.md"
+        roadmap = tmp_path / "roadmap.md"
+        readme.write_text("# Windfall\n", encoding="utf-8")
+        roadmap.write_text("# Roadmap\n\nBody.\n", encoding="utf-8")
+        with pytest.raises(ValueError):
+            update_roadmap(readme, roadmap)
+
+
 class TestSyncVersion:
     def test_sync_init_updates_version(self, tmp_path) -> None:
         _write_tree(tmp_path)
@@ -119,5 +158,6 @@ class TestSyncVersion:
         monkeypatch.setattr("scripts.update_readme.PYPROJECT", tmp_path / "pyproject.toml")
         monkeypatch.setattr("scripts.update_readme.README", tmp_path / "README.md")
         monkeypatch.setattr("scripts.update_readme.INIT", tmp_path / "init.py")
+        monkeypatch.setattr("scripts.update_readme.ROADMAP", tmp_path / "roadmap.md")
         assert sync_main(["--check"]) == 1
         assert sync_main(["--check"]) == 0

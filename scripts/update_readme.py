@@ -1,9 +1,11 @@
-"""Keep the README version badges in sync with the released version.
+"""Keep the README version badges and roadmap in sync.
 
 ``pyproject.toml`` is the source of truth for the version. This script
 regenerates the badge block between ``<!-- badges:start -->`` and
 ``<!-- badges:end -->`` in ``README.md`` so the version indicator always
-matches, and rewrites ``__version__`` in ``windfall/__init__.py`` to match.
+matches, rewrites ``__version__`` in ``windfall/__init__.py`` to match,
+and embeds the body of ``wiki/roadmap.md`` (the roadmap source of truth)
+between ``<!-- roadmap:start -->`` and ``<!-- roadmap:end -->``.
 
 Releasing:
     Bump the version in ``pyproject.toml`` and the ``[Unreleased]`` section
@@ -27,9 +29,12 @@ ROOT = Path(__file__).resolve().parents[1]
 PYPROJECT = ROOT / "pyproject.toml"
 README = ROOT / "README.md"
 INIT = ROOT / "windfall" / "__init__.py"
+ROADMAP = ROOT / "wiki" / "roadmap.md"
 
 BADGES_START = "<!-- badges:start -->"
 BADGES_END = "<!-- badges:end -->"
+ROADMAP_START = "<!-- roadmap:start -->"
+ROADMAP_END = "<!-- roadmap:end -->"
 
 DEFAULT_SLUG = "elenanight/windfall"
 REPO_URL = "https://github.com/elenanight/windfall"
@@ -100,6 +105,31 @@ def sync_init_version(version: str, path: Path | None = None) -> bool:
     return True
 
 
+def roadmap_body(path: Path | None = None) -> str:
+    """Body of ``wiki/roadmap.md`` minus its ``# Roadmap`` title line."""
+    lines = (path or ROADMAP).read_text(encoding="utf-8").splitlines()
+    if lines and lines[0].startswith("# "):
+        lines = lines[1:]
+    return "\n".join(lines).strip("\n")
+
+
+def update_roadmap(readme_path: Path | None = None, roadmap_path: Path | None = None) -> bool:
+    """Embed the wiki roadmap body in README; return True if it changed."""
+    readme = readme_path or README
+    text = readme.read_text(encoding="utf-8")
+    pattern = re.compile(
+        re.escape(ROADMAP_START) + r".*?" + re.escape(ROADMAP_END), re.DOTALL
+    )
+    if pattern.search(text) is None:
+        raise ValueError(f"README is missing {ROADMAP_START}…{ROADMAP_END}")
+    block = ROADMAP_START + "\n" + roadmap_body(roadmap_path) + "\n" + ROADMAP_END
+    new_text = pattern.sub(block, text)
+    if new_text == text:
+        return False
+    readme.write_text(new_text, encoding="utf-8")
+    return True
+
+
 def repo_slug() -> str:
     """Derive the owner/repo slug from the origin remote, if present.
 
@@ -138,7 +168,7 @@ def repo_slug() -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Sync README badges with the released version")
+    parser = argparse.ArgumentParser(description="Sync README badges and roadmap")
     parser.add_argument(
         "--check",
         action="store_true",
@@ -149,13 +179,14 @@ def main(argv: list[str] | None = None) -> int:
     slug = repo_slug()
     readme_changed = update_readme(version, slug)
     init_changed = sync_init_version(version)
-    if readme_changed or init_changed:
+    roadmap_changed = update_roadmap()
+    if readme_changed or init_changed or roadmap_changed:
         if args.check:
-            print("README badges or __version__ are out of date — run scripts/update_readme.py")
+            print("README badges, __version__, or roadmap are out of date — run scripts/update_readme.py")
             return 1
-        print(f"updated README badges and __version__ to windfall {version}")
+        print(f"updated README badges, __version__, and roadmap to windfall {version}")
     else:
-        print(f"README badges and __version__ already match windfall {version}")
+        print(f"README badges, __version__, and roadmap already match windfall {version}")
     return 0
 
 
