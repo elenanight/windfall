@@ -3,17 +3,12 @@ name: auto-release
 on:
   push:
     branches: [main]
-  workflow_run:
-    workflows: ["auto-promote"]
-    types: [completed]
-    branches: [dev]
 
 permissions:
   contents: write
 
 jobs:
   check:
-    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -28,7 +23,6 @@ jobs:
 
   publish:
     needs: check
-    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-24.04
     permissions:
       contents: write

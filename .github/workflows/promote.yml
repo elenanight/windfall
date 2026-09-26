@@ -28,14 +28,28 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin dev main
-          git checkout main
-          git merge --no-edit origin/dev
-          git push origin main
+          LINE=$(gh pr list --head dev --base main 2>/dev/null | head -n 1)
+          case "$LINE" in
+            \#*) PR=$(echo "$LINE" | awk '{print $1}' | tr -d '#');;
+            *) PR="";;
+          esac
+          if [ -z "$PR" ]; then
+            URL=$(gh pr create --base main --head dev --title "chore: promote dev to main" --body "Automated promotion — merges on green.")
+            PR=${URL##*/}
+          fi
+          for i in $(seq 1 90); do
+            if gh pr checks "$PR" 2>/dev/null | awk '$1=="test" && $2=="pass" {found=1} END{exit !found}'; then
+              break
+            fi
+            sleep 10
+          done
+          gh pr checks "$PR" 2>/dev/null | awk '$1=="test" && $2=="pass" {found=1} END{exit !found}'
+          gh pr merge "$PR" --merge
+        env:
+          GH_TOKEN: ${{ github.token }}
