@@ -99,12 +99,10 @@ connectors:
 | `windfall list app.py` | list Scene/Component subclasses (AST) |
 | `windfall help \| --help \| --version` | show help / version |
 
-Every subcommand also has a shortcut flag (`--create` ≡ `new`, `--run`,
-`--demo`, `--menu`, `--example`, `--check`, `--list`), plus
-`windfall --examples` to list the bundled examples.
-
-`demo`, `check`, and every run share the same `Engine.step` code path, so a
-`--headless` pass is equivalent to a real terminal session.
+Shortcut flags mirror every subcommand (`--create`, `--run`, `--demo`,
+`--menu`, `--example`, `--check`, `--list`); `windfall --examples` lists
+the bundled examples. All runs share one `Engine.step` code path, so a
+`--headless` pass behaves exactly like a live terminal session.
 
 ## Project manager
 
