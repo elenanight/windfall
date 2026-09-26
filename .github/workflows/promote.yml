@@ -43,7 +43,13 @@ jobs:
             URL=$(gh pr create --base main --head dev --title "chore: promote dev to main" --body "Automated promotion — merges on green.")
             PR=${URL##*/}
           fi
-          gh pr checks "$PR" --watch
+          for i in $(seq 1 90); do
+            if gh pr checks "$PR" 2>/dev/null | awk '$1=="test" && $2=="pass" {found=1} END{exit !found}'; then
+              break
+            fi
+            sleep 10
+          done
+          gh pr checks "$PR" 2>/dev/null | awk '$1=="test" && $2=="pass" {found=1} END{exit !found}'
           gh pr merge "$PR" --merge
         env:
           GH_TOKEN: ${{ github.token }}
