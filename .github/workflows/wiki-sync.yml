@@ -1,0 +1,33 @@
+name: wiki-sync
+
+on:
+  push:
+    branches: [main]
+    paths: ['wiki/**']
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    concurrency:
+      group: windfall-wiki-sync
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          rm -rf /tmp/wiki-sync
+          git clone "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.wiki.git" /tmp/wiki-sync
+          git -C /tmp/wiki-sync config user.name "github-actions[bot]"
+          git -C /tmp/wiki-sync config user.email "github-actions[bot]@users.noreply.github.com"
+          rsync -a --delete --exclude=.git --exclude=welcome.md wiki/ /tmp/wiki-sync/
+          cp wiki/welcome.md /tmp/wiki-sync/Home.md
+          git -C /tmp/wiki-sync add -A
+          git -C /tmp/wiki-sync diff --cached --quiet || git -C /tmp/wiki-sync commit -m "chore(wiki): sync from main repo wiki/"
+          git -C /tmp/wiki-sync push origin HEAD:master
