@@ -37,7 +37,9 @@ class _Bar(Component):
     identically, so they differ only in name and documentation.
     """
 
-    def __init__(self, text: str = "", *, border: str | None = "cyan", fg: str | None = "white") -> None:
+    def __init__(
+        self, text: str = "", *, border: str | None = "cyan", fg: str | None = "white"
+    ) -> None:
         super().__init__()
         self._text = text
         self._border = border
@@ -576,7 +578,9 @@ class AddWidget(Panel):
         if self.on_add is not None:
             self.on_add(kind, placement, stretch, id, text)
 
-    def preset(self, kind: str, placement: str, stretch: bool, id: str = "", text: str = "") -> None:
+    def preset(
+        self, kind: str, placement: str, stretch: bool, id: str = "", text: str = ""
+    ) -> None:
         """Preselect lists and fields for editing an existing placement."""
         self._types.select(_index_of(self._kinds, kind))
         self._places.select(_index_of(self._placements, placement))

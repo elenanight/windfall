@@ -49,4 +49,16 @@ pythonpath = ["."]
 [tool.ruff]
 line-length = 100
 target-version = "py314"
-extend-exclude = ["build"]
+extend-exclude = ["*.md", "windfall_cli/templates"]
+
+[tool.ruff.format]
+# Formatting exclusions only — `ruff check` still lints these paths.
+#
+# "*.md": ruff formats python blocks inside markdown, which collapses the
+# hand-aligned comment columns in the wiki's code samples. wiki/ is rsynced to
+# the public wiki repo by wiki-sync.yml, so that churn would propagate.
+#
+# "windfall_cli/templates": the app template is a scaffold artifact copied
+# into every new project, not library code, and formatting it inflates its
+# build() by 9% against the function-length gate.
+exclude = ["*.md", "windfall_cli/templates/"]

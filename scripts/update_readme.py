@@ -89,9 +89,7 @@ def build_badges(slug: str, version: str) -> str:
     return BADGES_START + "\n" + body + "\n" + BADGES_END
 
 
-def update_readme(
-    version: str, slug: str, path: Path | None = None, write: bool = True
-) -> bool:
+def update_readme(version: str, slug: str, path: Path | None = None, write: bool = True) -> bool:
     """Rewrite the README badge block; return True if the file changed.
 
     With ``write=False`` the change is only reported, never written, so
@@ -99,9 +97,7 @@ def update_readme(
     """
     readme = path or README
     text = readme.read_text(encoding="utf-8")
-    pattern = re.compile(
-        re.escape(BADGES_START) + r".*?" + re.escape(BADGES_END), re.DOTALL
-    )
+    pattern = re.compile(re.escape(BADGES_START) + r".*?" + re.escape(BADGES_END), re.DOTALL)
     if pattern.search(text) is None:
         raise ValueError(f"README is missing {BADGES_START}…{BADGES_END}")
     new_text = pattern.sub(build_badges(slug, version), text)
@@ -119,9 +115,7 @@ def sync_init_version(version: str, path: Path | None = None, write: bool = True
     """
     init = path or INIT
     text = init.read_text(encoding="utf-8")
-    new_text, count = re.subn(
-        r'__version__ = ".*?"', f'__version__ = "{version}"', text, count=1
-    )
+    new_text, count = re.subn(r'__version__ = ".*?"', f'__version__ = "{version}"', text, count=1)
     if count == 0:
         raise ValueError(f"no __version__ assignment found in {init}")
     if new_text == text:
@@ -150,9 +144,7 @@ def update_roadmap(
     """
     readme = readme_path or README
     text = readme.read_text(encoding="utf-8")
-    pattern = re.compile(
-        re.escape(ROADMAP_START) + r".*?" + re.escape(ROADMAP_END), re.DOTALL
-    )
+    pattern = re.compile(re.escape(ROADMAP_START) + r".*?" + re.escape(ROADMAP_END), re.DOTALL)
     if pattern.search(text) is None:
         raise ValueError(f"README is missing {ROADMAP_START}…{ROADMAP_END}")
     block = ROADMAP_START + "\n" + roadmap_body(roadmap_path) + "\n" + ROADMAP_END
@@ -189,9 +181,7 @@ def update_widgets(
     """
     readme = readme_path or README
     text = readme.read_text(encoding="utf-8")
-    pattern = re.compile(
-        re.escape(WIDGETS_START) + r".*?" + re.escape(WIDGETS_END), re.DOTALL
-    )
+    pattern = re.compile(re.escape(WIDGETS_START) + r".*?" + re.escape(WIDGETS_END), re.DOTALL)
     if pattern.search(text) is None:
         raise ValueError(f"README is missing {WIDGETS_START}…{WIDGETS_END}")
     cell = ", ".join(f"**{name}**" for name in widget_names(welcome_path))
@@ -219,7 +209,7 @@ def repo_slug() -> str:
             check=True,
             cwd=ROOT,
         ).stdout.strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
+    except subprocess.CalledProcessError, FileNotFoundError:
         return DEFAULT_SLUG
     if url.startswith("git@"):
         host, _, path = url[4:].partition(":")
@@ -259,7 +249,9 @@ def main(argv: list[str] | None = None) -> int:
     widgets_changed = update_widgets(write=write)
     if readme_changed or init_changed or roadmap_changed or widgets_changed:
         if args.check:
-            print("README badges, __version__, roadmap, or widgets are out of date — run scripts/update_readme.py")
+            print(
+                "README badges, __version__, roadmap, or widgets are out of date — run scripts/update_readme.py"
+            )
             return 1
         print(f"updated README badges, __version__, roadmap, and widgets to windfall {version}")
     else:

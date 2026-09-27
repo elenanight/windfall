@@ -33,10 +33,7 @@ _BAR_FILL = "█"
 
 def _fade_color(t: float) -> str:
     """Blend the logo foreground from dim indigo to bright gold by ``t``."""
-    channels = (
-        round(start + (end - start) * t)
-        for start, end in zip(_FADE_START, _FADE_END)
-    )
+    channels = (round(start + (end - start) * t) for start, end in zip(_FADE_START, _FADE_END))
     return "#{:02x}{:02x}{:02x}".format(*channels)
 
 

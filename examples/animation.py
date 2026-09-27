@@ -49,7 +49,9 @@ class MotionShowcase(Scene):
     def __init__(self, width: int = 30) -> None:
         super().__init__(name="animation")
         self.width = width
-        self.racers = [Dot(width, glyph, color) for glyph, color in zip(_RACER_GLYPHS, _RACER_COLORS)]
+        self.racers = [
+            Dot(width, glyph, color) for glyph, color in zip(_RACER_GLYPHS, _RACER_COLORS)
+        ]
         edge = 6
         self.orbiter = Dot(width, "●", "yellow", height=edge)
         self._eases = (ease_out_cubic, ease_linear, ease_in_out_cubic)
