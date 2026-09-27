@@ -73,11 +73,7 @@ def _write_tree(tmp_path, version: str = "0.1.0") -> None:
 
 def _tree_bytes(tmp_path) -> dict:
     """Every synced file's bytes, for asserting a run left the tree alone."""
-    return {
-        path.name: path.read_bytes()
-        for path in sorted(tmp_path.iterdir())
-        if path.is_file()
-    }
+    return {path.name: path.read_bytes() for path in sorted(tmp_path.iterdir()) if path.is_file()}
 
 
 class TestReadmeBadges:

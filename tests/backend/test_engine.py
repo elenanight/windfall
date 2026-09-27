@@ -133,20 +133,18 @@ class TestRunLoop:
         engine.run(fps=200)
         assert field.value == "z"
 
-    def test_run_restores_the_previous_winch_handler(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_run_restores_the_previous_winch_handler(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr("windfall.engine.Live", FakeLive)
         monkeypatch.setattr("windfall.engine.RawTerminal", FakeTerminal)
         installed: list = []
-        monkeypatch.setattr("windfall.engine.signal.signal", lambda sig, handler: installed.append(handler))
+        monkeypatch.setattr(
+            "windfall.engine.signal.signal", lambda sig, handler: installed.append(handler)
+        )
 
         def host_handler(_signum, _frame) -> None:
             pass
 
-        monkeypatch.setattr(
-            "windfall.engine.signal.getsignal", lambda _sig: host_handler
-        )
+        monkeypatch.setattr("windfall.engine.signal.getsignal", lambda _sig: host_handler)
         engine = Engine(input_reader=InputReader(read_char=_scripted(["\x03"])))
         engine.use_scene(Scene(name="demo"))
         engine.run(fps=200)

@@ -293,7 +293,9 @@ class TestAliases:
 
     def test_list(self, tmp_path: Path, capsys) -> None:
         app = tmp_path / "app.py"
-        app.write_text("from windfall import Scene\nclass MyScene(Scene):\n    pass\n", encoding="utf-8")
+        app.write_text(
+            "from windfall import Scene\nclass MyScene(Scene):\n    pass\n", encoding="utf-8"
+        )
         assert cli.main(["--list", str(app)]) == 0
         assert "MyScene" in capsys.readouterr().out
 
@@ -351,9 +353,7 @@ class TestExampleCommand:
         import tomllib
 
         config = tomllib.loads(
-            (Path(__file__).resolve().parents[2] / "pyproject.toml").read_text(
-                encoding="utf-8"
-            )
+            (Path(__file__).resolve().parents[2] / "pyproject.toml").read_text(encoding="utf-8")
         )
         setuptools_cfg = config["tool"]["setuptools"]
         assert "windfall.examples" in setuptools_cfg["packages"]

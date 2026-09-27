@@ -97,7 +97,9 @@ class TestMenuSize:
 
 
 class TestMenuActions:
-    def test_open_runs_app_in_its_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_open_runs_app_in_its_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         calls: list = []
         _stub_run(monkeypatch, calls)
         target = _make_project(tmp_path, "myapp")
@@ -305,9 +307,7 @@ class TestMenuEdgePaths:
         def missing_uv(*args, **kwargs):
             raise FileNotFoundError("uv")
 
-        monkeypatch.setattr(
-            menu_module, "subprocess", SimpleNamespace(Popen=missing_uv)
-        )
+        monkeypatch.setattr(menu_module, "subprocess", SimpleNamespace(Popen=missing_uv))
         target = _make_project(tmp_path, "myapp")
         scene = menu_module.build_menu(Engine(), tmp_path)
         _, open_btn, _, _, _ = editor_buttons(scene.root)
@@ -360,9 +360,7 @@ class TestMenuEdgePaths:
         assert not archived.exists() or not any(archived.iterdir())
         assert any("Could not archive" in line for line in _screen(scene))
 
-    def test_new_form_focuses_the_name_field_and_blurs_the_actions(
-        self, tmp_path: Path
-    ) -> None:
+    def test_new_form_focuses_the_name_field_and_blurs_the_actions(self, tmp_path: Path) -> None:
         scene = menu_module.build_menu(Engine(), tmp_path)
         new, _, _, _, _ = editor_buttons(scene.root)
         _press(scene, new)
@@ -508,9 +506,7 @@ class TestStdinHandoff:
         def boom(*args):
             raise OSError("tcflush failed")
 
-        monkeypatch.setattr(
-            menu_module, "termios", SimpleNamespace(tcflush=boom, TCIFLUSH=2)
-        )
+        monkeypatch.setattr(menu_module, "termios", SimpleNamespace(tcflush=boom, TCIFLUSH=2))
         menu_module._restore_stdin(self._engine(calls), 7)
         assert calls[-1] == ("input.open",)
 

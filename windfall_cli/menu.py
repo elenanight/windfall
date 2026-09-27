@@ -270,7 +270,6 @@ def build_menu(engine: Engine, base=None) -> Scene:
             widget.focus(False)
         yes.focus(True)
 
-
     def do_open() -> None:
         restore_actions()
         target = selected()

@@ -20,10 +20,7 @@ def _package_files() -> list[Path]:
 
 
 def _relative_files() -> list[tuple[str, Path]]:
-    return [
-        (str(path.relative_to(ROOT)), path)
-        for path in _package_files()
-    ]
+    return [(str(path.relative_to(ROOT)), path) for path in _package_files()]
 
 
 class TestPackageBudget:

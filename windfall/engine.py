@@ -123,7 +123,7 @@ class Engine:
                 try:
                     previous_winch = signal.getsignal(signal.SIGWINCH)
                     signal.signal(signal.SIGWINCH, _on_winch)
-                except (ValueError, AttributeError):
+                except ValueError, AttributeError:
                     previous_winch = None
                 with Live(auto_refresh=False, screen=True) as live:
                     last = time.perf_counter()
@@ -148,7 +148,7 @@ class Engine:
             if previous_winch is not None:
                 try:
                     signal.signal(signal.SIGWINCH, previous_winch)
-                except (ValueError, AttributeError, TypeError):
+                except ValueError, AttributeError, TypeError:
                     pass
             self.input.close()
             self.running = False

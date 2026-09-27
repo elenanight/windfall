@@ -52,7 +52,9 @@ class Style:
 class Theme:
     """A named collection of styles with a fallback default style."""
 
-    def __init__(self, default: Style | None = None, overrides: dict[str, Style] | None = None) -> None:
+    def __init__(
+        self, default: Style | None = None, overrides: dict[str, Style] | None = None
+    ) -> None:
         self._default = default if default is not None else Style()
         self._styles: dict[str, Style] = {}
         if overrides:

@@ -34,17 +34,16 @@ class Rect:
         self.height = height
 
     def __contains__(self, point: Vec2) -> bool:
-        return (
-            self.x <= point.x < self.x + self.width
-            and self.y <= point.y < self.y + self.height
-        )
+        return self.x <= point.x < self.x + self.width and self.y <= point.y < self.y + self.height
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Rect):
             return NotImplemented
-        return (
-            (self.x, self.y, self.width, self.height)
-            == (other.x, other.y, other.width, other.height)
+        return (self.x, self.y, self.width, self.height) == (
+            other.x,
+            other.y,
+            other.width,
+            other.height,
         )
 
     def __hash__(self) -> int:
