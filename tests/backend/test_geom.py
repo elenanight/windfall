@@ -38,6 +38,16 @@ class TestRect:
         assert Rect(1, 2, 3, 4) == Rect(1, 2, 3, 4)
         assert Rect(1, 2, 3, 4) != Rect(0, 0, 0, 0)
 
+    def test_equal_rects_hash_equal(self) -> None:
+        assert hash(Rect(1, 2, 3, 4)) == hash(Rect(1, 2, 3, 4))
+
+    def test_usable_as_a_dict_key_and_in_a_set(self) -> None:
+        # Defining __eq__ without __hash__ would make these raise TypeError.
+        seen = {Rect(0, 0, 2, 2): "a"}
+        seen[Rect(0, 0, 2, 2)] = "b"
+        assert seen == {Rect(0, 0, 2, 2): "b"}
+        assert len({Rect(0, 0, 2, 2), Rect(0, 0, 2, 2), Rect(1, 1, 1, 1)}) == 2
+
     def test_contains_points(self) -> None:
         rect = Rect(0, 0, 10, 5)
         assert Vec2(0, 0) in rect
