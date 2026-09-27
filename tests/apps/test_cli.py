@@ -26,6 +26,7 @@ from windfall.widgets import (
     TextInput,
 )
 from windfall_cli import cli
+from windfall_cli import examples as examples_mod
 
 
 def _stub_run(monkeypatch: pytest.MonkeyPatch, calls: list) -> None:
@@ -319,6 +320,44 @@ class TestExampleCommand:
         with pytest.raises(SystemExit) as exc:
             cli.main(["example", "nope"])
         assert exc.value.code == 2
+
+    def test_every_bundled_example_loads(self) -> None:
+        for name in examples_mod._EXAMPLES:
+            loaded = examples_mod._load(name)
+            assert callable(loaded.build), name
+
+    def test_load_falls_back_to_the_packaged_module_path(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """An install has no examples/ beside the CLI; it imports the package.
+
+        The examples ship as windfall.examples.<name>, so a fallback to the
+        old top-level "examples.<name>" would break every installed wheel.
+        """
+        seen: list[str] = []
+
+        def fake_import(name: str):
+            seen.append(name)
+            raise ImportError(name)
+
+        monkeypatch.setattr(examples_mod, "_EXAMPLES_DIR", Path("/nonexistent"))
+        monkeypatch.setattr(examples_mod.importlib, "import_module", fake_import)
+        with pytest.raises(FileNotFoundError):
+            examples_mod._load("snake")
+        assert seen == ["windfall.examples.snake"]
+
+    def test_examples_are_packaged_inside_windfall(self) -> None:
+        """Guard the packaging: shipping them top-level would pollute site-packages."""
+        import tomllib
+
+        config = tomllib.loads(
+            (Path(__file__).resolve().parents[2] / "pyproject.toml").read_text(
+                encoding="utf-8"
+            )
+        )
+        setuptools_cfg = config["tool"]["setuptools"]
+        assert "windfall.examples" in setuptools_cfg["packages"]
+        assert setuptools_cfg["package-dir"]["windfall.examples"] == "examples"
 
 
 class TestScaffoldedApp:

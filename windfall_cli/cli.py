@@ -130,13 +130,6 @@ def _display_path(path: Path) -> str:
         return str(path)
 
 
-def _display(path: Path) -> str:
-    try:
-        return str(path.resolve().relative_to(Path.cwd().resolve()))
-    except ValueError:
-        return str(path)
-
-
 def _cmd_run(args) -> int:
     if args.path is None:
         from windfall_cli.demo import main as demo_main
