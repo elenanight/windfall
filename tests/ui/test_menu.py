@@ -226,6 +226,125 @@ class TestMenuUi:
         assert engine.running is False
 
 
+class TestStdinHandoff:
+    """The fd handoff never ran under test before this class existed.
+
+    ``_detach_stdin`` opens with ``if not os.isatty(0): return None``, and
+    stdin is not a terminal under pytest, so every "open the project" test
+    bailed on that first line and the whole ``dup``/``dup2``/``tcflush``
+    dance went unexercised. These drive it with a fake ``os`` swapped into
+    the module namespace, so no real file descriptor is ever touched.
+    """
+
+    @staticmethod
+    def _fake_os(
+        monkeypatch: pytest.MonkeyPatch,
+        calls: list,
+        *,
+        isatty: bool = True,
+        fail: str = "",
+    ) -> None:
+        def op(name: str, result):
+            def inner(*args):
+                calls.append((name, *args))
+                if fail == name:
+                    raise OSError(f"{name} failed")
+                return result
+
+            return inner
+
+        monkeypatch.setattr(
+            menu_module,
+            "os",
+            SimpleNamespace(
+                isatty=op("isatty", isatty),
+                dup=op("dup", 7),
+                open=op("open", 9),
+                dup2=op("dup2", None),
+                close=op("close", None),
+                devnull="/dev/null",
+                O_RDONLY=0,
+            ),
+        )
+
+    @staticmethod
+    def _engine(calls: list) -> Engine:
+        reader = SimpleNamespace(
+            close=lambda: calls.append(("input.close",)),
+            open=lambda: calls.append(("input.open",)),
+        )
+        return Engine(input_reader=reader)
+
+    def test_detach_redirects_stdin_to_devnull(self, monkeypatch) -> None:
+        calls: list = []
+        self._fake_os(monkeypatch, calls)
+        saved = menu_module._detach_stdin(self._engine(calls))
+        assert saved == 7
+        assert calls == [
+            ("isatty", 0),
+            ("dup", 0),
+            ("open", "/dev/null", 0),
+            ("dup2", 9, 0),
+            ("close", 9),
+            ("input.close",),
+        ]
+
+    def test_detach_skips_when_stdin_is_not_a_terminal(self, monkeypatch) -> None:
+        calls: list = []
+        self._fake_os(monkeypatch, calls, isatty=False)
+        assert menu_module._detach_stdin(self._engine(calls)) is None
+        assert [name for name, *_ in calls] == ["isatty"]
+
+    def test_detach_gives_up_if_dup_fails(self, monkeypatch) -> None:
+        calls: list = []
+        self._fake_os(monkeypatch, calls, fail="dup")
+        assert menu_module._detach_stdin(self._engine(calls)) is None
+        assert ("close", 7) not in calls
+
+    def test_detach_closes_the_dup_if_devnull_open_fails(self, monkeypatch) -> None:
+        calls: list = []
+        self._fake_os(monkeypatch, calls, fail="open")
+        assert menu_module._detach_stdin(self._engine(calls)) is None
+        assert ("close", 7) in calls
+        assert ("dup2", 9, 0) not in calls
+
+    def test_restore_puts_the_dup_back_and_flushes(self, monkeypatch) -> None:
+        calls: list = []
+        self._fake_os(monkeypatch, calls)
+        monkeypatch.setattr(
+            menu_module,
+            "termios",
+            SimpleNamespace(tcflush=lambda *a: calls.append(("tcflush", *a)), TCIFLUSH=2),
+        )
+        menu_module._restore_stdin(self._engine(calls), 7)
+        assert calls == [
+            ("dup2", 7, 0),
+            ("close", 7),
+            ("tcflush", 0, 2),
+            ("input.open",),
+        ]
+
+    def test_restore_is_a_noop_without_a_saved_dup(self, monkeypatch) -> None:
+        calls: list = []
+        self._fake_os(monkeypatch, calls)
+        menu_module._restore_stdin(self._engine(calls), None)
+        assert calls == []
+
+    def test_restore_survives_a_termios_failure(self, monkeypatch) -> None:
+        """The dup is already back on fd 0, so a flush error must not escape."""
+        calls: list = []
+        self._fake_os(monkeypatch, calls)
+
+        def boom(*args):
+            raise OSError("tcflush failed")
+
+        monkeypatch.setattr(
+            menu_module, "termios", SimpleNamespace(tcflush=boom, TCIFLUSH=2)
+        )
+        menu_module._restore_stdin(self._engine(calls), 7)
+        assert calls[-1] == ("input.open",)
+
+
 class TestMenuCli:
     def test_help_lists_subcommand(self, capsys) -> None:
         with pytest.raises(SystemExit) as exc:
