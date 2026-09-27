@@ -39,6 +39,7 @@ class Engine:
         self.compositor = compositor if compositor is not None else Compositor()
         self.running = False
         self._queue = EventQueue()
+        self._pending_resize: tuple[int, int] | None = None
 
     def use_scene(self, scene) -> None:
         self.frames.push(Frame(scene))
@@ -96,6 +97,7 @@ class Engine:
 
     def run(self, fps: int = 30) -> None:
         self.running = True
+        previous_winch = None
         try:
             with RawTerminal():
                 self.input.open()
@@ -108,9 +110,10 @@ class Engine:
                     self._pending_resize = (size.columns, size.lines)
 
                 try:
+                    previous_winch = signal.getsignal(signal.SIGWINCH)
                     signal.signal(signal.SIGWINCH, _on_winch)
                 except (ValueError, AttributeError):
-                    pass
+                    previous_winch = None
                 with Live(auto_refresh=False, screen=True) as live:
                     last = time.perf_counter()
                     while self.running:
@@ -132,5 +135,12 @@ class Engine:
                         live.refresh()
                         time.sleep(max(0.0, 1.0 / fps - (time.perf_counter() - now)))
         finally:
+            # Hand SIGWINCH back to whoever had it: a host app keeps its own
+            # handler, and repeat runs must not leave ours dangling.
+            if previous_winch is not None:
+                try:
+                    signal.signal(signal.SIGWINCH, previous_winch)
+                except (ValueError, AttributeError, TypeError):
+                    pass
             self.input.close()
             self.running = False
