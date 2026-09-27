@@ -86,8 +86,14 @@ def build_badges(slug: str, version: str) -> str:
     return BADGES_START + "\n" + body + "\n" + BADGES_END
 
 
-def update_readme(version: str, slug: str, path: Path | None = None) -> bool:
-    """Rewrite the README badge block; return True if the file changed."""
+def update_readme(
+    version: str, slug: str, path: Path | None = None, write: bool = True
+) -> bool:
+    """Rewrite the README badge block; return True if the file changed.
+
+    With ``write=False`` the change is only reported, never written, so
+    ``--check`` can report staleness without touching the working tree.
+    """
     readme = path or README
     text = readme.read_text(encoding="utf-8")
     pattern = re.compile(
@@ -98,12 +104,16 @@ def update_readme(version: str, slug: str, path: Path | None = None) -> bool:
     new_text = pattern.sub(build_badges(slug, version), text)
     if new_text == text:
         return False
-    readme.write_text(new_text, encoding="utf-8")
+    if write:
+        readme.write_text(new_text, encoding="utf-8")
     return True
 
 
-def sync_init_version(version: str, path: Path | None = None) -> bool:
-    """Align ``__version__`` in windfall/__init__.py; return True if it changed."""
+def sync_init_version(version: str, path: Path | None = None, write: bool = True) -> bool:
+    """Align ``__version__`` in windfall/__init__.py; return True if it changed.
+
+    With ``write=False`` the change is only reported, never written.
+    """
     init = path or INIT
     text = init.read_text(encoding="utf-8")
     new_text, count = re.subn(
@@ -113,7 +123,8 @@ def sync_init_version(version: str, path: Path | None = None) -> bool:
         raise ValueError(f"no __version__ assignment found in {init}")
     if new_text == text:
         return False
-    init.write_text(new_text, encoding="utf-8")
+    if write:
+        init.write_text(new_text, encoding="utf-8")
     return True
 
 
@@ -125,8 +136,15 @@ def roadmap_body(path: Path | None = None) -> str:
     return "\n".join(lines).strip("\n")
 
 
-def update_roadmap(readme_path: Path | None = None, roadmap_path: Path | None = None) -> bool:
-    """Embed the wiki roadmap body in README; return True if it changed."""
+def update_roadmap(
+    readme_path: Path | None = None,
+    roadmap_path: Path | None = None,
+    write: bool = True,
+) -> bool:
+    """Embed the wiki roadmap body in README; return True if it changed.
+
+    With ``write=False`` the change is only reported, never written.
+    """
     readme = readme_path or README
     text = readme.read_text(encoding="utf-8")
     pattern = re.compile(
@@ -138,7 +156,8 @@ def update_roadmap(readme_path: Path | None = None, roadmap_path: Path | None = 
     new_text = pattern.sub(block, text)
     if new_text == text:
         return False
-    readme.write_text(new_text, encoding="utf-8")
+    if write:
+        readme.write_text(new_text, encoding="utf-8")
     return True
 
 
@@ -156,8 +175,15 @@ def widget_names(path: Path | None = None) -> list[str]:
     return names
 
 
-def update_widgets(readme_path: Path | None = None, welcome_path: Path | None = None) -> bool:
-    """Sync the README Widgets table cell from the wiki catalog."""
+def update_widgets(
+    readme_path: Path | None = None,
+    welcome_path: Path | None = None,
+    write: bool = True,
+) -> bool:
+    """Sync the README Widgets table cell from the wiki catalog.
+
+    With ``write=False`` the change is only reported, never written.
+    """
     readme = readme_path or README
     text = readme.read_text(encoding="utf-8")
     pattern = re.compile(
@@ -170,7 +196,8 @@ def update_widgets(readme_path: Path | None = None, welcome_path: Path | None = 
     new_text = pattern.sub(block, text)
     if new_text == text:
         return False
-    readme.write_text(new_text, encoding="utf-8")
+    if write:
+        readme.write_text(new_text, encoding="utf-8")
     return True
 
 
@@ -221,10 +248,12 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     version = project_version()
     slug = repo_slug()
-    readme_changed = update_readme(version, slug)
-    init_changed = sync_init_version(version)
-    roadmap_changed = update_roadmap()
-    widgets_changed = update_widgets()
+    # --check must never touch the tree: report what would change, write nothing.
+    write = not args.check
+    readme_changed = update_readme(version, slug, write=write)
+    init_changed = sync_init_version(version, write=write)
+    roadmap_changed = update_roadmap(write=write)
+    widgets_changed = update_widgets(write=write)
     if readme_changed or init_changed or roadmap_changed or widgets_changed:
         if args.check:
             print("README badges, __version__, roadmap, or widgets are out of date — run scripts/update_readme.py")
