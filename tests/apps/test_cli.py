@@ -400,6 +400,25 @@ class TestScaffoldedApp:
         assert any("New label" in line for line in rendered)
         assert not any("Build your app here." in line for line in rendered)
 
+    def test_add_label_to_sidebar(self, scaffold) -> None:
+        """Sidebar placement must be reachable, not refused as 'no room'."""
+        scene = scaffold.module.build(Engine())
+        _focus_button(scene, 0)  # W -> Add widget
+        assert scene.handle(Event(ACTIVATE)) is True
+        adders = find_all(scene.root, AddWidget)
+        assert len(adders) == 1
+        places = [w for w in focusables(adders[0]) if isinstance(w, ListView)][1]
+        places.focus(True)
+        for _ in range(4):  # left, center, right, full width, sidebar
+            places.handle(move("down"))
+        places.focus(False)
+        _save(adders[0], scene)
+        assert scaffold.config.exists(), "sidebar placement was refused as 'no room'"
+        assert '"placement": "sidebar"' in scaffold.config.read_text(encoding="utf-8")
+        assert find_all(scene.root, AddWidget) == []
+        rendered = Compositor().text(scene)
+        assert any("New label" in line for line in rendered)
+
     def test_edit_widget_placement_preset(self, scaffold) -> None:
         scene = scaffold.module.build(Engine())
         _add_label(scene)
