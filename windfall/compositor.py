@@ -5,7 +5,7 @@ from __future__ import annotations
 from rich.text import Text as _RichText
 
 from windfall.canvas import Canvas
-from windfall.geom import Rect
+from windfall.geom import Rect, Vec2
 
 
 class Compositor:
@@ -13,6 +13,8 @@ class Compositor:
 
     :meth:`render` produces one rich renderable for ``rich.Live``; :meth:`text`
     exposes the same frame as a plain-text grid for headless checks.
+    :meth:`size` reports the drawable area so a scene can size itself against
+    the space it will actually get.
     """
 
     def __init__(self, width: int = 80, height: int = 24) -> None:
@@ -24,6 +26,10 @@ class Compositor:
         self._width = width
         self._height = height
         self._canvas.resize(width, height)
+
+    def size(self) -> Vec2:
+        """The drawable area, i.e. the rect :meth:`render` hands the scene."""
+        return Vec2(self._width, self._height)
 
     def render(self, scene) -> _RichText:
         self._canvas.fill(0, 0, self._width, self._height)

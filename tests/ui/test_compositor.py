@@ -5,6 +5,7 @@ from __future__ import annotations
 from rich.text import Text as RichText
 
 from windfall.compositor import Compositor
+from windfall.geom import Vec2
 from windfall.layout import Column
 from windfall.primitives import Text
 from windfall.scene import Scene
@@ -37,3 +38,12 @@ class TestCompositor:
         compositor = Compositor(4, 2)
         compositor.render(_scene())
         assert compositor.text(Scene(name="blank")) == ["    ", "    "]
+
+    def test_size_reports_the_drawable_area(self) -> None:
+        compositor = Compositor(80, 24)
+        assert compositor.size() == Vec2(80, 24)
+
+    def test_size_follows_resize(self) -> None:
+        compositor = Compositor(80, 24)
+        compositor.resize(120, 40)
+        assert compositor.size() == Vec2(120, 40)
