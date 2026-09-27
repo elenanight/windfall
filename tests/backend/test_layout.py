@@ -5,9 +5,10 @@ from __future__ import annotations
 import pytest
 
 from windfall.canvas import Canvas
+from windfall.events import Event
 from windfall.geom import Rect, Vec2
 from windfall.layout import Center, Column, Row, Stack
-from windfall.primitives import Text
+from windfall.primitives import Box, Primitive, Text
 
 
 class TestContainer:
@@ -181,3 +182,56 @@ class TestCenter:
         assert canvas.text() == ["  ab  "]
         with pytest.raises(ValueError):
             Center(align="diagonal")
+
+
+class _Counter(Primitive):
+    """A leaf that records every event it sees and never consumes one."""
+
+    def __init__(self) -> None:
+        self.seen: list[str] = []
+
+    def size(self) -> Vec2:
+        return Vec2(1, 1)
+
+    def draw(self, canvas, rect: Rect) -> None:
+        pass
+
+    def handle(self, event) -> bool:
+        self.seen.append(event.kind)
+        return False
+
+
+class TestEventDispatch:
+    def test_nested_leaf_sees_each_event_exactly_once(self) -> None:
+        """A non-consuming event must not be re-delivered once per ancestor."""
+        leaf = _Counter()
+        inner = Column().add(leaf)
+        box = Box(inner)
+        outer = Column().add(Center().add(box))
+        assert outer.handle(Event("key")) is False
+        assert leaf.seen == ["key"]
+
+    def test_depth_does_not_multiply_deliveries(self) -> None:
+        leaf = _Counter()
+        node = Column().add(leaf)
+        for _ in range(6):  # seven containers deep
+            node = Column().add(Box(node))
+        assert node.handle(Event("key")) is False
+        assert leaf.seen == ["key"]
+
+    def test_deep_consumer_still_receives_the_event(self) -> None:
+        consumed: list[str] = []
+
+        class _Consumer(_Counter):
+            def handle(self, event) -> bool:
+                super().handle(event)
+                consumed.append(event.kind)
+                return True
+
+        leaf = _Consumer()
+        node = Column().add(leaf)
+        for _ in range(6):
+            node = Column().add(Box(node))
+        assert node.handle(Event("key")) is True
+        assert leaf.seen == ["key"]
+        assert consumed == ["key"]
