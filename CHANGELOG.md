@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.10] - 2026-09-27
+
+### Added
+
+- `RESIZE` events: a terminal resize now reaches the scene, so it can react
+  through the documented event vocabulary instead of polling `size()`
+- `FOCUS` and `BLUR` events: the scene announces the focus moves it makes when
+  cycling with the arrow keys and when entering or leaving a focus scope
+- `Compositor.size()`, reporting the drawable area so a scene can size itself
+- Function-length budget gate, ratcheting the two known long functions so they
+  may shrink but not grow
+
+### Fixed
+
+- `windfall --example` works from an installed wheel. The bundled examples now
+  ship inside the package; previously any non-editable install failed with
+  `example 'snake' not found`
+- `Engine.run()` restores the host's `SIGWINCH` handler on exit instead of
+  leaving its own installed, and `_pending_resize` is initialised in
+  `__init__` so it can no longer be read before it exists
+- Nested widgets receive each event once, not once per ancestor. A widget seven
+  levels deep saw every keystroke 64 times
+- The scaffolded app's `sidebar` placement is reachable, and the fit check
+  measures the content area's real inner width rather than a sibling's natural
+  width — it no longer starts too tight or tightens as widgets are placed
+- `Rect` is hashable again, so it works as a dict key and inside a set
+- Archiving a project whose timestamped name is taken now counts from `-1`
+  instead of skipping straight to `-2`
+- `VERSION` is the single hand-edited source of the version; `pyproject.toml`
+  declares it dynamic and both release scripts read it, where they previously
+  read two different files
+- CI's `--check` gates no longer write to the tree they inspect. Both
+  `update_readme.py --check` and `cut_release.py --check` are read-only, and
+  the changelog promotion moved into the cut where writing is the point
+- The project manager's terminal handoff is now covered by tests; it had never
+  executed under CI, where stdin is not a terminal
+
+### Changed
+
+- Promotion to `main` happens through a pull request gated on the required
+  checks, never a direct push
+- `wiki/` auto-syncs to the GitHub Wiki on promotion
+- README roadmap and widget table are synced from `wiki/` by
+  `scripts/update_readme.py`
+- `ruff format` applied across the library and CLI, excluding markdown (whose
+  aligned code samples are hand-styled and synced to the public wiki) and the
+  app template (a scaffold artifact whose formatting inflated its `build()` by
+  9% against the length gate)
+- `Header`/`Footer` and their editors share one implementation
+
 ## [0.2.9] - 2026-09-22
 
 ### Added
