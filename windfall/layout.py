@@ -47,13 +47,7 @@ class Container:
         _tick(self, dt)
 
     def handle(self, event: Event) -> bool:
-        for child in _yield_children(self):
-            handler = getattr(child, "handle", None)
-            if handler is not None and handler(event):
-                return True
-            if _deliver(child, event):
-                return True
-        return False
+        return _deliver(self, event)
 
 
 def _tick(node, dt: float) -> None:
@@ -67,12 +61,17 @@ def _tick(node, dt: float) -> None:
 
 
 def _deliver(node, event: Event) -> bool:
-    """Depth-first delivery: let nested handlers consume an event in order."""
+    """Depth-first delivery: let nested handlers consume an event in order.
+
+    A ``Container`` child recurses through its own ``handle``, so only
+    non-containers are descended into here — otherwise every nested widget
+    would see each event once per ancestor.
+    """
     for child in _yield_children(node):
         handler = getattr(child, "handle", None)
         if handler is not None and handler(event):
             return True
-        if _deliver(child, event):
+        if not isinstance(child, Container) and _deliver(child, event):
             return True
     return False
 

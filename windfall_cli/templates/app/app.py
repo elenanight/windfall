@@ -26,6 +26,10 @@ from windfall.scene import focusables
 
 CONFIG_PATH = Path(__file__).resolve().parent / ".windfallrc.json"
 
+# Cells the content panel spends on itself: one border plus one padding cell
+# on each side. Everything inside is what a placed widget can draw into.
+CONTENT_CHROME = 4
+
 DEFAULTS = {
     "header": "hello from @@package@@!",
     "border": "cyan",
@@ -79,7 +83,7 @@ def build(engine: Engine) -> Scene:
     content_main.add(guide_build)
     content_main.add(guide_where)
     content_aside = Column()
-    content_row = Row(fill=True, weights=[1, 0])
+    content_row = Row(fill=True, weights=[3, 1])
     content_row.add(content_main)
     content_row.add(content_aside)
     content = Panel(content_row, title="Content", padding=1)
@@ -263,13 +267,23 @@ def build(engine: Engine) -> Scene:
         target.add(node)
         return target, node
 
+    def content_width() -> int:
+        """Columns the content section can use at the current terminal size."""
+        return max(0, engine.compositor.size().x - CONTENT_CHROME)
+
     def space_reason(kind: str, placement: str, stretch: bool, id: str = "", text: str = "") -> str | None:
-        """Refuse placement when the widget is wider than the content area."""
-        if stretch:
+        """Refuse placement when the widget is wider than the content area.
+
+        Measured against the content panel's real inner width rather than a
+        sibling's natural width, so the check neither starts too tight nor
+        tightens as widgets are placed. The sidebar column sizes itself to
+        whatever it holds, so a widget placed there sets that width instead
+        of having to fit inside it.
+        """
+        if stretch or placement == "sidebar":
             return None
         widget = engine.make_widget(kind, id=id, text=text)
-        target = content_aside if placement == "sidebar" else content_main
-        width = max((child.size().x for child in target.children), default=0)
+        width = content_width()
         if widget.size().x > width:
             return f"No room: {kind} needs {widget.size().x} cols, content has {width}"
         return None

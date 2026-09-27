@@ -95,6 +95,26 @@ def _add_label(scene) -> None:
     _save(adders[0], scene)
 
 
+def _add_label_with_text(scene, text: str) -> bool:
+    """Open the palette, type ``text`` into the label, and try to save.
+
+    Returns whether the placement was accepted.
+    """
+    _focus_button(scene, 0)  # W -> Add widget
+    assert scene.handle(Event(ACTIVATE)) is True
+    adders = find_all(scene.root, AddWidget)
+    assert len(adders) == 1
+    fields = [w for w in focusables(adders[0]) if isinstance(w, TextInput)]
+    fields[1].focus(True)
+    for char in text:
+        fields[1].handle(key(char))
+    fields[1].focus(False)
+    _save(adders[0], scene)
+    # A refusal leaves the palette open with the reason on its status line,
+    # which sits below the fold on a default-height canvas.
+    return find_all(scene.root, AddWidget) == []
+
+
 def _add_named_label(scene) -> None:
     _focus_button(scene, 0)  # W -> Add widget
     assert scene.handle(Event(ACTIVATE)) is True
@@ -399,6 +419,62 @@ class TestScaffoldedApp:
         rendered = Compositor().text(scene)
         assert any("New label" in line for line in rendered)
         assert not any("Build your app here." in line for line in rendered)
+
+    def test_add_label_to_sidebar(self, scaffold) -> None:
+        """Sidebar placement must be reachable, not refused as 'no room'."""
+        scene = scaffold.module.build(Engine())
+        _focus_button(scene, 0)  # W -> Add widget
+        assert scene.handle(Event(ACTIVATE)) is True
+        adders = find_all(scene.root, AddWidget)
+        assert len(adders) == 1
+        places = [w for w in focusables(adders[0]) if isinstance(w, ListView)][1]
+        places.focus(True)
+        for _ in range(4):  # left, center, right, full width, sidebar
+            places.handle(move("down"))
+        places.focus(False)
+        _save(adders[0], scene)
+        assert scaffold.config.exists(), "sidebar placement was refused as 'no room'"
+        assert '"placement": "sidebar"' in scaffold.config.read_text(encoding="utf-8")
+        assert find_all(scene.root, AddWidget) == []
+        rendered = Compositor().text(scene)
+        assert any("New label" in line for line in rendered)
+
+    def test_wide_label_fits_the_content_area(self, scaffold) -> None:
+        """The check measures the content area, not a neighbour's width.
+
+        The guide labels are 45 columns wide, so anything wider used to be
+        refused as 'no room' even though the content area is 76.
+        """
+        scene = scaffold.module.build(Engine())
+        assert _add_label_with_text(scene, "w" * 60)
+        assert '"text": "' + "w" * 60 + '"' in scaffold.config.read_text(encoding="utf-8")
+
+    def test_check_does_not_tighten_as_widgets_are_placed(self, scaffold) -> None:
+        """A narrow first placement must not shrink the room for the next."""
+        scene = scaffold.module.build(Engine())
+        assert _add_label_with_text(scene, "tiny")
+        assert _add_label_with_text(scene, "w" * 60)
+        config = scaffold.config.read_text(encoding="utf-8")
+        assert '"text": "tiny"' in config
+        assert '"text": "' + "w" * 60 + '"' in config
+
+    def test_absurdly_wide_label_is_still_refused(self, scaffold) -> None:
+        scene = scaffold.module.build(Engine())
+        assert not _add_label_with_text(scene, "w" * 200)
+        assert not scaffold.config.exists()
+        assert any("No room" in line for line in Compositor(140, 60).text(scene))
+
+    def test_content_width_follows_the_terminal_size(self, scaffold) -> None:
+        engine = Engine()
+        scene = scaffold.module.build(engine)
+        engine.compositor.resize(200, 24)
+        assert _add_label_with_text(scene, "w" * 150)
+        config = scaffold.config.read_text(encoding="utf-8")
+        # A 400-column label cannot fit the 196 columns a 200-column terminal
+        # leaves inside the content panel.
+        assert not _add_label_with_text(scene, "w" * 400)
+        assert scaffold.config.read_text(encoding="utf-8") == config
+        assert any("No room" in line for line in Compositor(140, 60).text(scene))
 
     def test_edit_widget_placement_preset(self, scaffold) -> None:
         scene = scaffold.module.build(Engine())

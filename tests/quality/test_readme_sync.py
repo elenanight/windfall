@@ -73,6 +73,15 @@ def _write_tree(tmp_path, version: str = "0.1.0") -> None:
     tmp_path.joinpath("welcome.md").write_text(_sample_welcome(), encoding="utf-8")
 
 
+def _tree_bytes(tmp_path) -> dict:
+    """Every synced file's bytes, for asserting a run left the tree alone."""
+    return {
+        path.name: path.read_bytes()
+        for path in sorted(tmp_path.iterdir())
+        if path.is_file()
+    }
+
+
 class TestReadmeBadges:
     def test_build_badges_embeds_version_and_slug(self) -> None:
         block = build_badges("elenanight/windfall", "0.2.0")
@@ -213,5 +222,14 @@ class TestSyncVersion:
         monkeypatch.setattr("scripts.update_readme.INIT", tmp_path / "init.py")
         monkeypatch.setattr("scripts.update_readme.ROADMAP", tmp_path / "roadmap.md")
         monkeypatch.setattr("scripts.update_readme.WELCOME", tmp_path / "welcome.md")
+        monkeypatch.setattr("scripts.update_readme.repo_slug", lambda: "elenanight/windfall")
+        before = _tree_bytes(tmp_path)
+        # --check is a read-only gate: stale stays stale, and nothing is written.
         assert sync_main(["--check"]) == 1
+        assert _tree_bytes(tmp_path) == before
+        assert sync_main(["--check"]) == 1
+        assert _tree_bytes(tmp_path) == before
+        # A real run writes, after which the gate is satisfied.
+        assert sync_main([]) == 0
         assert sync_main(["--check"]) == 0
+        assert _tree_bytes(tmp_path) != before
