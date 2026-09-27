@@ -112,6 +112,32 @@ class TestRunLoop:
         engine.run(fps=200)
         assert field.value == "z"
 
+    def test_run_restores_the_previous_winch_handler(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr("windfall.engine.Live", FakeLive)
+        monkeypatch.setattr("windfall.engine.RawTerminal", FakeTerminal)
+        installed: list = []
+        monkeypatch.setattr("windfall.engine.signal.signal", lambda sig, handler: installed.append(handler))
+
+        def host_handler(_signum, _frame) -> None:
+            pass
+
+        monkeypatch.setattr(
+            "windfall.engine.signal.getsignal", lambda _sig: host_handler
+        )
+        engine = Engine(input_reader=InputReader(read_char=_scripted(["\x03"])))
+        engine.use_scene(Scene(name="demo"))
+        engine.run(fps=200)
+        # Ours went in, and the host's handler went back out.
+        assert len(installed) == 2
+        assert installed[0] is not host_handler
+        assert installed[1] is host_handler
+
+    def test_pending_resize_exists_before_run(self) -> None:
+        """The SIGWINCH callback may fire before run() re-initialises the slot."""
+        assert Engine()._pending_resize is None
+
 
 class TestEngineFactories:
     def test_make_header_assembles_widget_from_primitives(self) -> None:
