@@ -13,6 +13,7 @@ import subprocess
 import termios
 import time
 from pathlib import Path
+from typing import NamedTuple
 
 from windfall import Button, Column, Engine, Hotkey, Label, ListView, Panel, Row, Scene, TextInput
 from windfall.primitives import Box
@@ -72,15 +73,73 @@ def format_size(num_bytes: int) -> str:
     return f"{text} {unit}"
 
 
-def build_menu(engine: Engine, base=None) -> Scene:
-    """Assemble the project manager scene for ``<base>/project``."""
+def _detach_stdin(engine: Engine) -> int | None:
+    """Hand the terminal to the child app exclusively.
+
+    Points our stdin at /dev/null so our blocked pump thread exits on
+    EOF instead of racing the child's reader for keystrokes. Returns a
+    dup of the real terminal that the child must inherit explicitly via
+    ``stdin=`` (it must NOT rely on inheriting fd 0). Returns None
+    when stdin is not a terminal.
+    """
+    try:
+        if not os.isatty(0):
+            return None
+        saved = os.dup(0)
+    except OSError:
+        return None
+    try:
+        null = os.open(os.devnull, os.O_RDONLY)
+    except OSError:
+        os.close(saved)
+        return None
+    try:
+        os.dup2(null, 0)
+    finally:
+        os.close(null)
+    engine.input.close()
+    return saved
+
+
+def _restore_stdin(engine: Engine, saved: int | None) -> None:
+    """Take the terminal back: restore stdin, flush type-ahead, resume."""
+    if saved is None:
+        return
+    try:
+        os.dup2(saved, 0)
+    finally:
+        os.close(saved)
+    try:
+        termios.tcflush(0, termios.TCIFLUSH)
+    except OSError:
+        pass
+    engine.input.open()
+
+
+class _MenuWidgets(NamedTuple):
+    """The menu's static widget tree, plus the parts behavior reaches for.
+
+    Holding these by name makes it explicit which widgets the interactive
+    closures depend on, so a layout change cannot silently break one.
+    """
+
+    scene: Scene
+    root: Column
+    status: Label
+    view: ListView
+    actions: Row
+    body: Row
+    info_count: Label
+    info_size: Label
+
+
+def _build_layout(engine: Engine, projects: list[Path]) -> _MenuWidgets:
+    """Assemble the static menu tree for the given project list."""
     from windfall import __version__
 
-    root_path = Path(base) if base is not None else Path.cwd()
-    state: dict = {"projects": find_projects(root_path)}
     header = engine.make_header("Windfall - Projects", border="cyan", fg="bright_white")
-    status = Label("Press New to scaffold your first app." if not state["projects"] else "")
-    view = ListView(items=_names(state["projects"]))
+    status = Label("Press New to scaffold your first app." if not projects else "")
+    view = ListView(items=_names(projects))
     view.focus(True)
     actions = Row()
     main = Column()
@@ -117,7 +176,28 @@ def build_menu(engine: Engine, base=None) -> Scene:
     root.add(header)
     root.add(body)
     root.add(footer)
-    scene = Scene(name="menu", root=root)
+    return _MenuWidgets(
+        scene=Scene(name="menu", root=root),
+        root=root,
+        status=status,
+        view=view,
+        actions=actions,
+        body=body,
+        info_count=info_count,
+        info_size=info_size,
+    )
+
+
+def build_menu(engine: Engine, base=None) -> Scene:
+    """Assemble the project manager scene for ``<base>/project``."""
+    root_path = Path(base) if base is not None else Path.cwd()
+    projects = find_projects(root_path)
+    parts = _build_layout(engine, projects)
+    scene, status, view = parts.scene, parts.status, parts.view
+    root = parts.root
+    actions, body = parts.actions, parts.body
+    info_count, info_size = parts.info_count, parts.info_size
+    state: dict = {"projects": projects}
 
     def _sync_info() -> None:
         count = len(state["projects"])
@@ -190,46 +270,6 @@ def build_menu(engine: Engine, base=None) -> Scene:
             widget.focus(False)
         yes.focus(True)
 
-    def _detach_stdin() -> int | None:
-        """Hand the terminal to the child app exclusively.
-
-        Points our stdin at /dev/null so our blocked pump thread exits on
-        EOF instead of racing the child's reader for keystrokes. Returns a
-        dup of the real terminal that the child must inherit explicitly via
-        ``stdin=`` (it must NOT rely on inheriting fd 0). Returns None
-        when stdin is not a terminal.
-        """
-        try:
-            if not os.isatty(0):
-                return None
-            saved = os.dup(0)
-        except OSError:
-            return None
-        try:
-            null = os.open(os.devnull, os.O_RDONLY)
-        except OSError:
-            os.close(saved)
-            return None
-        try:
-            os.dup2(null, 0)
-        finally:
-            os.close(null)
-        engine.input.close()
-        return saved
-
-    def _restore_stdin(saved: int | None) -> None:
-        """Take the terminal back: restore stdin, flush type-ahead, resume."""
-        if saved is None:
-            return
-        try:
-            os.dup2(saved, 0)
-        finally:
-            os.close(saved)
-        try:
-            termios.tcflush(0, termios.TCIFLUSH)
-        except OSError:
-            pass
-        engine.input.open()
 
     def do_open() -> None:
         restore_actions()
@@ -238,7 +278,7 @@ def build_menu(engine: Engine, base=None) -> Scene:
             status.set_text("Nothing to open.")
             return
         print(f"Starting {target.name} ...")
-        saved = _detach_stdin()
+        saved = _detach_stdin(engine)
         try:
             proc = subprocess.Popen(
                 ["uv", "run", "python", "app.py"],
@@ -250,7 +290,7 @@ def build_menu(engine: Engine, base=None) -> Scene:
             status.set_text("`uv` not found; start the app manually.")
             return
         finally:
-            _restore_stdin(saved)
+            _restore_stdin(engine, saved)
         refresh(f"Back from {target.name}.")
 
     def request_delete() -> None:
