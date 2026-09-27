@@ -290,6 +290,11 @@ def apply_cut(version: str, dry_run: bool = False) -> None:
         print(f"would EOL: {slid_eol(version)}")
         return
 
+    # verify() is read-only by contract, so promote the section here, where
+    # writing is the point. This is after the --dry-run return so a dry run
+    # stays side-effect free, and before the release body is read below.
+    _ensure_changelog_section(version)
+
     text = read_text()
     new_text = slide_support_block(text, version)
     if new_text != text:

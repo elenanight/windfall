@@ -188,3 +188,45 @@ class TestGate:
         monkeypatch.setattr(cr, "last_released_tag", lambda: "0.2.6")
         assert cr.main(["--check"]) == 1
 
+
+class TestApplyCut:
+    """``--apply`` must reach the release body for a pending, unpromoted cut.
+
+    ``verify()`` is read-only, so ``apply_cut`` owns the promotion. Without it
+    the publish job of release.yml died on a missing ``## [version]`` section
+    right after verify() reported the release as cuttable.
+    """
+
+    def _pending_tree(self, tmp_path: Path) -> Path:
+        _write_tree(tmp_path, version="0.2.7")
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text(
+            "# Changelog\n\n## [Unreleased]\n\n### Added\n\n- A windfall feature.\n",
+            encoding="utf-8",
+        )
+        return changelog
+
+    def test_apply_cut_promotes_before_reading_the_release_body(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        changelog = self._pending_tree(tmp_path)
+        _point(tmp_path, monkeypatch)
+        monkeypatch.setattr(cr, "SECURITY", tmp_path / "SECURITY.md")
+        # Both already exist, so apply_cut stops short of tagging or publishing
+        # and no subprocess is spawned.
+        monkeypatch.setattr(cr, "ensure_gh", lambda: True)
+        monkeypatch.setattr(cr, "tag_exists", lambda version: True)
+        monkeypatch.setattr(cr, "release_exists", lambda version: True)
+        cr.apply_cut("0.2.7")
+        assert f"## [0.2.7] - {time.strftime('%Y-%m-%d')}" in changelog.read_text(
+            encoding="utf-8"
+        )
+
+    def test_dry_run_stays_side_effect_free(self, tmp_path, monkeypatch) -> None:
+        changelog = self._pending_tree(tmp_path)
+        _point(tmp_path, monkeypatch)
+        monkeypatch.setattr(cr, "SECURITY", tmp_path / "SECURITY.md")
+        before = changelog.read_bytes()
+        cr.apply_cut("0.2.7", dry_run=True)
+        assert changelog.read_bytes() == before
+
