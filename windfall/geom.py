@@ -47,6 +47,11 @@ class Rect:
             == (other.x, other.y, other.width, other.height)
         )
 
+    def __hash__(self) -> int:
+        # Defining __eq__ drops the inherited __hash__, which would make
+        # every Rect unhashable; equal rects must hash equal.
+        return hash((self.x, self.y, self.width, self.height))
+
     def move(self, offset: Vec2) -> Rect:
         return Rect(self.x + offset.x, self.y + offset.y, self.width, self.height)
 

@@ -6,7 +6,7 @@ from tests.helpers import move
 from windfall.anim import Tween, ease_linear
 from windfall.canvas import Canvas
 from windfall.component import Component
-from windfall.events import ACTIVATE, KEY, Event
+from windfall.events import ACTIVATE, BLUR, FOCUS, KEY, Event
 from windfall.geom import Rect, Vec2
 from windfall.layout import Center, Column
 from windfall.scene import Frame, FrameStack, Scene
@@ -183,6 +183,90 @@ class TestScene:
         scene.clear_focus_scope()
         assert save.focused is False
         assert background.focused is True
+
+
+class TestFocusEvents:
+    """FOCUS and BLUR were exported but never emitted; the scene now does."""
+
+    @staticmethod
+    def _wired(root) -> tuple[Scene, list[Event]]:
+        scene = Scene(root=root)
+        emitted: list[Event] = []
+        scene.emit = emitted.append
+        return scene, emitted
+
+    @staticmethod
+    def _kinds(emitted: list[Event]) -> list[str]:
+        return [event.kind for event in emitted]
+
+    def test_cycling_focus_emits_blur_then_focus(self) -> None:
+        scene, emitted = self._wired(Column().add(Button("a")).add(Button("b")))
+        scene.handle(move("down"))
+        assert self._kinds(emitted) == [FOCUS]
+        scene.handle(move("down"))
+        assert self._kinds(emitted) == [FOCUS, BLUR, FOCUS]
+
+    def test_emitted_events_name_the_widget(self) -> None:
+        first, second = Button("a"), Button("b")
+        scene, emitted = self._wired(Column().add(first).add(second))
+        scene.handle(move("down"))
+        assert emitted[0].data["widget"] is first
+        scene.handle(move("down"))
+        assert emitted[1].data["widget"] is first
+        assert emitted[2].data["widget"] is second
+
+    def test_focus_scope_emits_blur_then_focus(self) -> None:
+        background = Button("App", padding=0)
+        save = Button("Save", padding=0)
+        editor = Panel(Column().add(save), title="Header")
+        scene, emitted = self._wired(Column().add(background).add(editor))
+        scene.handle(move("down"))
+        emitted.clear()
+
+        scene.set_focus_scope(editor)
+        assert self._kinds(emitted) == [BLUR, FOCUS]
+        assert emitted[0].data["widget"] is background
+        assert emitted[1].data["widget"] is save
+
+    def test_clearing_scope_emits_blur_then_focus(self) -> None:
+        background = Button("App", padding=0)
+        save = Button("Save", padding=0)
+        editor = Panel(Column().add(save), title="Header")
+        scene, emitted = self._wired(Column().add(background).add(editor))
+        scene.handle(move("down"))
+        scene.set_focus_scope(editor)
+        emitted.clear()
+
+        scene.clear_focus_scope()
+        assert self._kinds(emitted) == [BLUR, FOCUS]
+        assert emitted[1].data["widget"] is background
+
+    def test_unfocused_widgets_do_not_emit_blur(self) -> None:
+        """Entering a scope must not announce blur for everything unfocused."""
+        first = Button("a", padding=0)
+        second = Button("b", padding=0)
+        third = Button("c", padding=0)
+        editor = Panel(Column().add(third), title="E")
+        scene, emitted = self._wired(Column().add(first).add(second).add(editor))
+        scene.set_focus_scope(editor)
+        assert self._kinds(emitted) == [FOCUS]
+        assert emitted[0].data["widget"] is third
+
+    def test_focus_to_announces_direct_use(self) -> None:
+        button = Button("a")
+        scene, emitted = self._wired(Column().add(button))
+        scene.focus_to(button)
+        assert self._kinds(emitted) == [FOCUS]
+        scene.focus_to(button, False)
+        assert self._kinds(emitted) == [FOCUS, BLUR]
+
+    def test_scene_without_an_emitter_still_moves_focus(self) -> None:
+        first, second = Button("a"), Button("b")
+        scene = Scene(root=Column().add(first).add(second))  # emit left unset
+        scene.handle(move("down"))
+        scene.handle(move("down"))
+        assert first.focused is False
+        assert second.focused is True
 
 
 class TestFrameStack:

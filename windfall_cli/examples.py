@@ -17,6 +17,8 @@ _DESCRIPTIONS = {
     "animation": "easing and motion with Motion and Sequence",
     "snake": "a clean grid game: steer, grow, restart",
 }
+# Present in a checkout; absent from an install, where the examples ship
+# inside the package and are imported as windfall.examples.<name>.
 _EXAMPLES_DIR = Path(__file__).resolve().parents[1] / "examples"
 
 
@@ -47,6 +49,7 @@ def _load(name):
     if path.is_file():
         return SimpleNamespace(**runpy.run_path(str(path)))
     try:
-        return importlib.import_module(f"examples.{name}")
+        module = importlib.import_module(f"windfall.examples.{name}")
     except ImportError as error:
         raise FileNotFoundError(f"example {name!r} not found ({path})") from error
+    return SimpleNamespace(**vars(module))

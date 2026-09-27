@@ -9,7 +9,7 @@ import time
 from rich.live import Live
 
 from windfall.compositor import Compositor
-from windfall.events import QUIT, Event, EventQueue
+from windfall.events import QUIT, RESIZE, Event, EventQueue
 from windfall.input import InputReader, Keymap
 from windfall.primitives import Divider
 from windfall.scene import Frame, FrameStack
@@ -42,6 +42,9 @@ class Engine:
         self._pending_resize: tuple[int, int] | None = None
 
     def use_scene(self, scene) -> None:
+        # Give the scene a way to announce its own events (FOCUS/BLUR) back
+        # into this engine's queue.
+        scene.emit = self.post_event
         self.frames.push(Frame(scene))
 
     def make_header(self, text: str = "", *, border: str = "cyan", fg: str = "white") -> Header:
@@ -81,6 +84,14 @@ class Engine:
         self.running = False
 
     def step(self, dt: float = 0.016) -> None:
+        # A terminal resize recorded by the SIGWINCH handler is adopted first,
+        # so the RESIZE event below reaches the scene in the same frame the
+        # compositor changes size. This also covers the headless path.
+        if self._pending_resize is not None:
+            width, height = self._pending_resize
+            self.compositor.resize(width, height)
+            self._pending_resize = None
+            self.post_event(Event(RESIZE, {"width": width, "height": height}))
         while True:
             event = self._queue.poll()
             if event is None:
@@ -126,9 +137,6 @@ class Engine:
                                 break
                             self.post_event(self.keymap.map(token))
                         self.step(dt)
-                        if self._pending_resize is not None:
-                            self.compositor.resize(*self._pending_resize)
-                            self._pending_resize = None
                         scene = self.frames.current.scene if self.frames.current else None
                         if scene is not None:
                             live.update(self.compositor.render(scene))

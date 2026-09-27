@@ -1,4 +1,4 @@
-"""Whole-package audit: every class must honor the rule of ten."""
+"""Whole-package audit: classes and functions must honor the rule of ten."""
 
 from __future__ import annotations
 
@@ -19,8 +19,20 @@ def _package_files() -> list[Path]:
     return files
 
 
+def _relative_files() -> list[tuple[str, Path]]:
+    return [
+        (str(path.relative_to(ROOT)), path)
+        for path in _package_files()
+    ]
+
+
 class TestPackageBudget:
     def test_every_class_stays_within_budget(self) -> None:
         files = _package_files()
         assert files, "no package files found to audit"
         budget.run_checks(budget.analysis(files))
+
+    def test_no_function_exceeds_the_length_budget(self) -> None:
+        files = _relative_files()
+        assert files, "no package files found to audit"
+        budget.run_length_checks(files)

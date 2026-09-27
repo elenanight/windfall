@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import threading
 import time
 
 import pytest
@@ -148,16 +149,28 @@ class TestTokenReader:
             os.close(read_fd)
             os.close(write_fd)
 
-    def test_assembles_slow_escape_sequence(self) -> None:
+    def test_assembles_slow_escape_sequence(self, monkeypatch) -> None:
+        """Bytes spread apart in time must still assemble into one token.
+
+        The reader has to be running before the rest of the sequence lands,
+        otherwise both bytes are already buffered and nothing is being tested.
+        A generous timeout keeps this independent of scheduler jitter.
+        """
+        monkeypatch.setattr("windfall.input._ESC_TIMEOUT", 5.0)
         read_fd, write_fd = os.pipe()
+        tokens: list[str] = []
+        reader = threading.Thread(target=lambda: tokens.append(_read_token(read_fd)))
         try:
+            reader.start()
             os.write(write_fd, b"\x1b")
             time.sleep(0.1)
             os.write(write_fd, b"[B")
-            assert _read_token(read_fd) == readchar.key.DOWN
+            reader.join(timeout=10)
         finally:
             os.close(read_fd)
             os.close(write_fd)
+        assert not reader.is_alive(), "reader did not finish"
+        assert tokens == [readchar.key.DOWN]
 
     def test_raises_on_eof(self) -> None:
         read_fd, write_fd = os.pipe()

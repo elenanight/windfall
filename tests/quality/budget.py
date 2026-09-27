@@ -1,9 +1,17 @@
-"""Method-budget analyzer used by the test suite.
+"""Method- and function-budget analyzers used by the test suite.
 
-Rule of ten: every class in ``windfall/`` and ``windfall_cli/`` may define at
-most ``MAX_METHODS`` methods, excluding ``__init__``. Crossing the limit is an
-ERROR (test failure); reaching 9-10 methods emits a UserWarning so the class
-and its methods are called out before the limit is hit.
+Rule of ten, methods: every class in ``windfall/`` and ``windfall_cli/`` may
+define at most ``MAX_METHODS`` methods, excluding ``__init__``. Crossing the
+limit is an ERROR (test failure); reaching 9-10 methods emits a UserWarning so
+the class and its methods are called out before the limit is hit.
+
+Rule of ten, functions: no single function may run past
+``MAX_FUNCTION_LINES`` lines. Two functions already exceed it, so they are
+ratcheted in ``OVER_LENGTH_ALLOWLIST`` at their current length: they may shrink
+but growing past the recorded number is an error until the function is
+refactored and dropped from the map. This keeps the gate honest about the two
+worst offenders instead of silently passing them, which is what a methods-only
+check did.
 """
 
 from __future__ import annotations
@@ -17,6 +25,14 @@ from pathlib import Path
 MAX_METHODS = 10
 WARN_FROM = 9  # a class with >= this many methods already warns
 WARN_AT_LIMIT = MAX_METHODS
+
+MAX_FUNCTION_LINES = 60
+
+# {relative path: {function name: lines allowed}} — the ratchet.
+OVER_LENGTH_ALLOWLIST = {
+    "windfall_cli/menu.py": {"build_menu": 239},
+    "windfall_cli/templates/app/app.py": {"build": 276},
+}
 
 
 @dataclass
@@ -90,3 +106,64 @@ def run_checks(reports: list[BudgetReport], *, emit_warnings: bool = True) -> No
         elif emit_warnings and report.count >= WARN_FROM:
             warnings.warn(report.warning_message(), UserWarning, stacklevel=2)
     assert not errors, "Method budget exceeded:\n\n" + "\n\n".join(errors)
+
+
+@dataclass
+class LengthReport:
+    """Audit result for one function: where it lives and how long it is."""
+
+    module_path: Path
+    func_name: str
+    lines: int
+
+    def error_message(self) -> str:
+        return (
+            f"[LENGTH-ERROR] {self.module_path}::{self.func_name} is {self.lines} "
+            f"lines (max {MAX_FUNCTION_LINES}).\n"
+            f"    -> split it into helpers, or shrink it below the limit."
+        )
+
+    def growth_message(self, allowed: int) -> str:
+        return (
+            f"[LENGTH-ERROR] {self.module_path}::{self.func_name} grew to "
+            f"{self.lines} lines, past its ratcheted {allowed}.\n"
+            f"    -> a ratcheted function may shrink but not grow. Refactor it, "
+            f"or update OVER_LENGTH_ALLOWLIST if the growth is justified."
+        )
+
+
+def length_reports_from_source(
+    source: str, module_path: str = "x.py"
+) -> list[LengthReport]:
+    """Audit an in-memory source string, one report per function."""
+    tree = ast.parse(source)
+    return [
+        LengthReport(Path(module_path), node.name, (node.end_lineno or node.lineno) - node.lineno + 1)
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+
+
+def run_length_checks(
+    files: Iterable[tuple[str, Path]],
+    *,
+    allowlist: dict[str, dict[str, int]] | None = None,
+) -> None:
+    """Raise on over-long functions, honoring the ratchet in ``allowlist``.
+
+    ``files`` is ``(relative path, path)`` pairs so ratchet keys stay stable
+    regardless of where the suite runs from.
+    """
+    ratchet = OVER_LENGTH_ALLOWLIST if allowlist is None else allowlist
+    errors: list[str] = []
+    for rel_path, path in files:
+        for report in length_reports_from_source(
+            path.read_text(encoding="utf-8"), rel_path
+        ):
+            allowed = ratchet.get(rel_path, {}).get(report.func_name)
+            if allowed is None:
+                if report.lines > MAX_FUNCTION_LINES:
+                    errors.append(report.error_message())
+            elif report.lines > allowed:
+                errors.append(report.growth_message(allowed))
+    assert not errors, "Function length budget exceeded:\n\n" + "\n\n".join(errors)
