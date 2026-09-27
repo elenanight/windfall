@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Wiki guide: comprehensive widget reference, now available at `wiki/welcome.md`
-  and `https://github.com/elenanight/windfall/wiki/welcome.md`
+  and `https://github.com/elenanight/windfall/wiki`
 - Auto-generated API reference in `wiki/api/`
 - Wiki: separate `windfall.wiki.git` repo archived; main repo `wiki/` is source of truth
 

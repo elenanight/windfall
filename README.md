@@ -41,7 +41,7 @@ cd project/myapp && uv run python app.py # run it
 ## Widget List
 
 Interactive primitives for building apps — full catalog in the
-[widget guide](wiki/welcome.md):
+[widget guide](https://github.com/elenanight/windfall/wiki):
 
 <!-- widgets:start -->
 **Label**, **TextInput**, **Header**, **Footer**, **Button**, **Hotkey**, **ListView**, **HeaderEditor**, **FooterEditor**, **AddWidget**, **RemoveWidget**, **EditMenu**
