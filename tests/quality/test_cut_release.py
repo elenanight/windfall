@@ -13,13 +13,11 @@ from scripts import cut_release as cr
 def _write_tree(tmp_path: Path, version: str = "0.2.6") -> None:
     tmp_path.joinpath("VERSION").write_text(f"{version}\n", encoding="utf-8")
     tmp_path.joinpath("README.md").write_text(
-        "# Windfall\n\n"
-        f"[![version](https://img.shields.io/badge/version-{version}-blue)]()\n",
+        f"# Windfall\n\n[![version](https://img.shields.io/badge/version-{version}-blue)]()\n",
         encoding="utf-8",
     )
     tmp_path.joinpath("CHANGELOG.md").write_text(
-        "# Changelog\n\n"
-        f"## [{version}] - 2026-09-22\n\n### Added\n\n- A windfall feature.\n",
+        f"# Changelog\n\n## [{version}] - 2026-09-22\n\n### Added\n\n- A windfall feature.\n",
         encoding="utf-8",
     )
     tmp_path.joinpath("SECURITY.md").write_text(
@@ -130,9 +128,7 @@ class TestVerify:
         _write_tree(tmp_path, version="0.2.7")
         _point(tmp_path, monkeypatch)
         changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text(
-            "# Changelog\n\n## [0.2.6] - 2026-09-01\n\nOld.\n", encoding="utf-8"
-        )
+        changelog.write_text("# Changelog\n\n## [0.2.6] - 2026-09-01\n\nOld.\n", encoding="utf-8")
         ok, problems = cr.verify("0.2.7")
         assert not ok
         assert any("CHANGELOG" in problem for problem in problems)
@@ -154,9 +150,7 @@ class TestChangelogPromotion:
 
     def test_promotion_returns_none_with_nothing_to_promote(self, tmp_path) -> None:
         changelog = tmp_path / "CHANGELOG.md"
-        changelog.write_text(
-            "# Changelog\n\n## [0.2.6] - 2026-09-01\n\nOld.\n", encoding="utf-8"
-        )
+        changelog.write_text("# Changelog\n\n## [0.2.6] - 2026-09-01\n\nOld.\n", encoding="utf-8")
         assert cr._promoted_changelog("0.2.7", changelog) is None
 
     def test_promotion_leaves_the_file_untouched(self, tmp_path) -> None:
@@ -216,9 +210,7 @@ class TestApplyCut:
         monkeypatch.setattr(cr, "tag_exists", lambda version: True)
         monkeypatch.setattr(cr, "release_exists", lambda version: True)
         cr.apply_cut("0.2.7")
-        assert f"## [0.2.7] - {time.strftime('%Y-%m-%d')}" in changelog.read_text(
-            encoding="utf-8"
-        )
+        assert f"## [0.2.7] - {time.strftime('%Y-%m-%d')}" in changelog.read_text(encoding="utf-8")
 
     def test_dry_run_stays_side_effect_free(self, tmp_path, monkeypatch) -> None:
         changelog = self._pending_tree(tmp_path)
@@ -227,4 +219,3 @@ class TestApplyCut:
         before = changelog.read_bytes()
         cr.apply_cut("0.2.7", dry_run=True)
         assert changelog.read_bytes() == before
-

@@ -529,18 +529,14 @@ class TestAddWidget:
 
     def test_columns_share_equal_widths_for_thirds(self) -> None:
         editor = AddWidget()
-        widths = {
-            w.size().x for w in focusables(editor) if isinstance(w, ListView)
-        }
+        widths = {w.size().x for w in focusables(editor) if isinstance(w, ListView)}
         assert widths == {11}
 
 
 class TestRemoveWidget:
     def test_commit_delivers_selected_index(self) -> None:
         removed: list[int] = []
-        editor = RemoveWidget(
-            ["Label · left", "Button · full"], on_remove=removed.append
-        )
+        editor = RemoveWidget(["Label · left", "Button · full"], on_remove=removed.append)
         views = [w for w in focusables(editor) if isinstance(w, ListView)]
         views[0].focus(True)
         views[0].handle(move("down"))

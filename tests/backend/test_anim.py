@@ -164,7 +164,9 @@ class TestMotion:
 
     def test_writes_custom_attributes(self) -> None:
         target = Positioned()
-        motion = Motion(target, Vec2(0, 0), Vec2(10, 0), 1.0, ease=ease_linear, x_attr="left", y_attr="right")
+        motion = Motion(
+            target, Vec2(0, 0), Vec2(10, 0), 1.0, ease=ease_linear, x_attr="left", y_attr="right"
+        )
         assert target.left == 0.0
         motion.step(0.5)
         assert target.left == pytest.approx(5.0)

@@ -90,23 +90,21 @@ class TestLengthBudgetLogic:
         path = tmp_path / "ratchet.py"
         path.write_text(_long_function("grew", 80), encoding="utf-8")
         with pytest.raises(AssertionError, match="grew to 80 lines"):
-            budget.run_length_checks(
-                [("ratchet.py", path)], allowlist={"ratchet.py": {"grew": 60}}
-            )
+            budget.run_length_checks([("ratchet.py", path)], allowlist={"ratchet.py": {"grew": 60}})
 
     def test_nested_functions_are_counted_too(self, tmp_path: Path) -> None:
         path = tmp_path / "nested.py"
         inner = "\n".join(f"        y{i} = {i}" for i in range(budget.MAX_FUNCTION_LINES + 5))
-        path.write_text(f"def outer():\n    def also_long():\n{inner}\n        return 1\n", encoding="utf-8")
+        path.write_text(
+            f"def outer():\n    def also_long():\n{inner}\n        return 1\n", encoding="utf-8"
+        )
         with pytest.raises(AssertionError, match="also_long"):
             budget.run_length_checks([("nested.py", path)], allowlist={})
 
     def test_shipped_allowlist_matches_the_real_offenders(self) -> None:
         """The ratchet keys must be the paths the package scan actually uses."""
         offenders = {
-            rel: name
-            for rel, names in budget.OVER_LENGTH_ALLOWLIST.items()
-            for name in names
+            rel: name for rel, names in budget.OVER_LENGTH_ALLOWLIST.items() for name in names
         }
         assert offenders, "ratchet is empty; it should pin the two known offenders"
         for rel in offenders:

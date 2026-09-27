@@ -14,12 +14,10 @@ class Primitive(ABC):
     """A drawable that knows its natural size and can render into a rect."""
 
     @abstractmethod
-    def size(self) -> Vec2:
-        ...
+    def size(self) -> Vec2: ...
 
     @abstractmethod
-    def draw(self, canvas, rect: Rect) -> None:
-        ...
+    def draw(self, canvas, rect: Rect) -> None: ...
 
 
 class Text(Primitive):
