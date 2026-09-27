@@ -143,6 +143,45 @@ class TestMenuActions:
         assert archived[0].name.startswith("myapp-")
         assert (archived[0] / "app.py").is_file()
 
+    def test_archive_collision_counting_starts_at_one(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The first name clash must land on -1, not skip to -2."""
+        stamp = "20260927-120000"
+        monkeypatch.setattr(menu_module.time, "strftime", lambda fmt: stamp)
+        target = _make_project(tmp_path, "myapp")
+        archive = tmp_path / "project" / ".archive"
+        archive.mkdir()
+        (archive / f"myapp-{stamp}").mkdir()  # force exactly one collision
+
+        scene = menu_module.build_menu(Engine(), tmp_path)
+        _, _, _, archive_btn, _ = editor_buttons(scene.root)
+        for widget in focusables(scene.root):
+            widget.focus(False)
+        archive_btn.focus(True)
+        assert scene.handle(Event(ACTIVATE)) is True
+        assert not target.exists()
+        assert (archive / f"myapp-{stamp}-1" / "app.py").is_file()
+
+    def test_archive_skips_every_taken_suffix(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        stamp = "20260927-120000"
+        monkeypatch.setattr(menu_module.time, "strftime", lambda fmt: stamp)
+        _make_project(tmp_path, "myapp")
+        archive = tmp_path / "project" / ".archive"
+        archive.mkdir()
+        for suffix in ("", "-1", "-2"):
+            (archive / f"myapp-{stamp}{suffix}").mkdir()
+
+        scene = menu_module.build_menu(Engine(), tmp_path)
+        _, _, _, archive_btn, _ = editor_buttons(scene.root)
+        for widget in focusables(scene.root):
+            widget.focus(False)
+        archive_btn.focus(True)
+        assert scene.handle(Event(ACTIVATE)) is True
+        assert (archive / f"myapp-{stamp}-3" / "app.py").is_file()
+
     def test_new_creates_project_and_refreshes(self, tmp_path: Path) -> None:
         scene = menu_module.build_menu(Engine(), tmp_path)
         new, _, _, _, _ = editor_buttons(scene.root)

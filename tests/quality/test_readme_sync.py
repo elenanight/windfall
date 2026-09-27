@@ -64,9 +64,7 @@ def _sample_welcome() -> str:
 
 
 def _write_tree(tmp_path, version: str = "0.1.0") -> None:
-    tmp_path.joinpath("pyproject.toml").write_text(
-        f'[project]\nname = "windfall"\nversion = "{version}"\n', encoding="utf-8"
-    )
+    tmp_path.joinpath("VERSION").write_text(f"{version}\n", encoding="utf-8")
     tmp_path.joinpath("README.md").write_text(_sample_readme(), encoding="utf-8")
     tmp_path.joinpath("init.py").write_text('__version__ = "0.1.0"\n', encoding="utf-8")
     tmp_path.joinpath("roadmap.md").write_text(_sample_roadmap(), encoding="utf-8")
@@ -212,12 +210,13 @@ class TestSyncVersion:
         assert '__version__ = "0.3.0"' in init.read_text(encoding="utf-8")
 
     def test_project_version_reads_source_of_truth(self, tmp_path) -> None:
+        """The version is read from VERSION, the one place it is written."""
         _write_tree(tmp_path, version="0.4.0")
-        assert project_version(tmp_path / "pyproject.toml") == "0.4.0"
+        assert project_version(tmp_path / "VERSION") == "0.4.0"
 
     def test_check_flag_reports_staleness(self, tmp_path, monkeypatch) -> None:
         _write_tree(tmp_path, version="0.5.0")
-        monkeypatch.setattr("scripts.update_readme.PYPROJECT", tmp_path / "pyproject.toml")
+        monkeypatch.setattr("scripts.update_readme.VERSION", tmp_path / "VERSION")
         monkeypatch.setattr("scripts.update_readme.README", tmp_path / "README.md")
         monkeypatch.setattr("scripts.update_readme.INIT", tmp_path / "init.py")
         monkeypatch.setattr("scripts.update_readme.ROADMAP", tmp_path / "roadmap.md")
