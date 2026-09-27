@@ -4,7 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "windfall"
-version = "0.2.9"
+# The version lives in exactly one place: the VERSION file. Everything else
+# (this table, windfall/__init__.py, the README badge) is derived from it.
+dynamic = ["version"]
 description = "A class-based TUI compositor and engine for building terminal apps and games with rich and readchar."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -29,6 +31,9 @@ dev = [
 # `--example` works from an installed wheel. Shipping them as top-level
 # modules would put generic names (menu, snake) into site-packages.
 packages = ["windfall", "windfall_cli", "windfall.examples"]
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
 
 [tool.setuptools.package-dir]
 "windfall.examples" = "examples"

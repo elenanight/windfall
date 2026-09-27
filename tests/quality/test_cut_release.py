@@ -11,9 +11,7 @@ from scripts import cut_release as cr
 
 
 def _write_tree(tmp_path: Path, version: str = "0.2.6") -> None:
-    tmp_path.joinpath("pyproject.toml").write_text(
-        f'[project]\nname = "windfall"\nversion = "{version}"\n', encoding="utf-8"
-    )
+    tmp_path.joinpath("VERSION").write_text(f"{version}\n", encoding="utf-8")
     tmp_path.joinpath("README.md").write_text(
         "# Windfall\n\n"
         f"[![version](https://img.shields.io/badge/version-{version}-blue)]()\n",
@@ -43,7 +41,7 @@ def _write_tree(tmp_path: Path, version: str = "0.2.6") -> None:
 def _point(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Point the script at a temp tree, restoring the real paths afterwards."""
     for name, path in {
-        "PYPROJECT": tmp_path / "pyproject.toml",
+        "VERSION": tmp_path / "VERSION",
         "INIT": tmp_path / "windfall" / "__init__.py",
         "README": tmp_path / "README.md",
         "CHANGELOG": tmp_path / "CHANGELOG.md",

@@ -27,12 +27,12 @@ from __future__ import annotations
 import argparse
 import re
 import subprocess
-import tomllib
 from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PYPROJECT = ROOT / "pyproject.toml"
+#: The one place the version is written by hand; everything else derives from it.
+VERSION = ROOT / "VERSION"
 INIT = ROOT / "windfall" / "__init__.py"
 README = ROOT / "README.md"
 SECURITY = ROOT / "SECURITY.md"
@@ -52,9 +52,8 @@ def read_text(path: Path | None = None) -> str:
 
 
 def project_version(path: Path | None = None) -> str:
-    """Read the version from pyproject.toml (source of truth)."""
-    with (path or PYPROJECT).open("rb") as handle:
-        return tomllib.load(handle)["project"]["version"]
+    """Read the version from the VERSION file, the single source of truth."""
+    return (path or VERSION).read_text(encoding="utf-8").strip()
 
 
 def init_version(path: Path | None = None) -> str:
