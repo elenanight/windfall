@@ -31,6 +31,24 @@ def _stub_run(monkeypatch: pytest.MonkeyPatch, calls: list) -> None:
     monkeypatch.setattr(menu_module, "subprocess", SimpleNamespace(Popen=fake_popen))
 
 
+def _screen(scene) -> list[str]:
+    """The rendered frame, so status text can be asserted like any other UI."""
+    from windfall import Compositor
+
+    return Compositor(80, 24).text(scene)
+
+
+def _press(scene, button) -> None:
+    for widget in focusables(scene.root):
+        widget.focus(False)
+    button.focus(True)
+    assert scene.handle(Event(ACTIVATE)) is True
+
+
+def _action_buttons(scene) -> list:
+    return [w for w in focusables(scene.root) if isinstance(w, Button)][:5]
+
+
 class TestFindProjects:
     def test_lists_sorted_app_dirs(self, tmp_path: Path) -> None:
         _make_project(tmp_path, "bebra")
@@ -263,6 +281,119 @@ class TestMenuUi:
         engine.running = True
         assert scene.handle(Event(KEY, {"key": "x"})) is True
         assert engine.running is False
+
+
+class TestMenuEdgePaths:
+    """Characterisation tests for the menu's failure and focus paths.
+
+    ``build_menu`` is a 164-line closure nest that is deliberately staying put
+    (ratcheted in tests/quality/budget.py). These pin the behaviour a future
+    refactor would have to reproduce, mostly the error paths, which had no
+    coverage at all. Note the three error conventions genuinely differ:
+
+    * ``do_delete``  reports, restores the action row, and returns
+    * ``do_archive`` reports and returns, leaving the row as it found it
+    * ``do_open``    reports and returns *before* refreshing the project list
+
+    Each test asserts what is actually observable rather than what would be
+    tidier.
+    """
+
+    def test_open_reports_a_missing_uv_and_keeps_the_project(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def missing_uv(*args, **kwargs):
+            raise FileNotFoundError("uv")
+
+        monkeypatch.setattr(
+            menu_module, "subprocess", SimpleNamespace(Popen=missing_uv)
+        )
+        target = _make_project(tmp_path, "myapp")
+        scene = menu_module.build_menu(Engine(), tmp_path)
+        _, open_btn, _, _, _ = editor_buttons(scene.root)
+        _press(scene, open_btn)
+        assert target.is_dir()
+        assert any("`uv` not found" in line for line in _screen(scene))
+
+    def test_delete_failure_keeps_the_project_and_restores_actions(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def boom(*args, **kwargs):
+            raise OSError("permission denied")
+
+        monkeypatch.setattr(
+            menu_module, "shutil", SimpleNamespace(rmtree=boom, move=lambda *a: None)
+        )
+        target = _make_project(tmp_path, "myapp")
+        scene = menu_module.build_menu(Engine(), tmp_path)
+        _, _, delete, _, _ = editor_buttons(scene.root)
+        _press(scene, delete)
+        # The confirm row replaced the actions; answering Yes must fail...
+        yes, _no = [w for w in focusables(scene.root) if isinstance(w, Button)][-2:]
+        _press(scene, yes)
+        assert target.is_dir()
+        assert any("Could not delete" in line for line in _screen(scene))
+        # ...and put the five normal actions back.
+        assert [b._text for b in _action_buttons(scene)] == [
+            "New",
+            "Open",
+            "Delete",
+            "Archive",
+            "Quit",
+        ]
+
+    def test_archive_failure_keeps_the_project_where_it_is(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def boom(*args, **kwargs):
+            raise OSError("cross-device link")
+
+        monkeypatch.setattr(
+            menu_module, "shutil", SimpleNamespace(move=boom, rmtree=lambda *a: None)
+        )
+        target = _make_project(tmp_path, "myapp")
+        scene = menu_module.build_menu(Engine(), tmp_path)
+        _, _, _, archive, _ = editor_buttons(scene.root)
+        _press(scene, archive)
+        assert (target / "app.py").is_file()
+        archived = tmp_path / "project" / ".archive"
+        assert not archived.exists() or not any(archived.iterdir())
+        assert any("Could not archive" in line for line in _screen(scene))
+
+    def test_new_form_focuses_the_name_field_and_blurs_the_actions(
+        self, tmp_path: Path
+    ) -> None:
+        scene = menu_module.build_menu(Engine(), tmp_path)
+        new, _, _, _, _ = editor_buttons(scene.root)
+        _press(scene, new)
+        focused = [w for w in focusables(scene.root) if getattr(w, "focused", False)]
+        assert len(focused) == 1
+        assert isinstance(focused[0], TextInput)
+        # The project list is blurred too. This holds either way today: the
+        # explicit blur loop in show_new_form is redundant, because
+        # restore_actions() (called first) already blurs the five actions, and
+        # reaching New at all requires focus to be on New rather than the list.
+        assert not any(isinstance(w, ListView) and w.focused for w in focusables(scene.root))
+        assert [b._text for b in _action_buttons(scene)] == [
+            "New",
+            "Open",
+            "Delete",
+            "Archive",
+            "Quit",
+        ]
+
+    def test_selection_is_clamped_so_the_bounds_check_is_defensive(self) -> None:
+        """``selected()`` guards index >= len(projects), but select() clamps.
+
+        Worth pinning: if ListView.select ever stops clamping, that guard
+        becomes load-bearing and this test is the reminder.
+        """
+        view = ListView(items=["a", "b"])
+        view.select(99)
+        assert view.selection == 1
+        empty = ListView(items=[])
+        empty.select(3)
+        assert empty.selection == 0
 
 
 class TestStdinHandoff:
