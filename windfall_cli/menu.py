@@ -311,7 +311,8 @@ def build_menu(engine: Engine, base=None) -> Scene:
         archive.mkdir(parents=True, exist_ok=True)
         stamp = time.strftime("%Y%m%d-%H%M%S")
         dest = archive / f"{target.name}-{stamp}"
-        counter = 1
+        # Counter starts at 0 so the first clash lands on -1, not -2.
+        counter = 0
         while dest.exists():
             counter += 1
             dest = archive / f"{target.name}-{stamp}-{counter}"
