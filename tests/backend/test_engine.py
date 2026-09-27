@@ -5,12 +5,32 @@ from __future__ import annotations
 import pytest
 
 from windfall.anim import Tween, ease_linear
+from windfall.component import Component
 from windfall.engine import Engine
-from windfall.events import ACTIVATE, QUIT, Event
+from windfall.events import ACTIVATE, QUIT, RESIZE, Event
+from windfall.geom import Vec2
 from windfall.input import InputReader
 from windfall.primitives import Divider
 from windfall.scene import Scene
 from windfall.widgets import Button, Footer, Header, Label, ListView, TextInput
+
+
+class _Recorder(Component):
+    """A leaf that records every event the scene routes to it."""
+
+    def __init__(self, seen: list[Event]) -> None:
+        super().__init__()
+        self._seen = seen
+
+    def size(self) -> Vec2:
+        return Vec2(1, 1)
+
+    def draw(self, canvas, rect) -> None:
+        pass
+
+    def handle(self, event: Event) -> bool:
+        self._seen.append(event)
+        return False
 
 
 class FakeLive:
@@ -137,6 +157,46 @@ class TestRunLoop:
     def test_pending_resize_exists_before_run(self) -> None:
         """The SIGWINCH callback may fire before run() re-initialises the slot."""
         assert Engine()._pending_resize is None
+
+
+class TestResizeEvent:
+    """A terminal resize must reach the scene as a RESIZE event.
+
+    RESIZE was exported in the event vocabulary but never produced, so a
+    scene had no way to observe a resize except by polling size().
+    """
+
+    def test_resize_is_announced_to_the_scene(self) -> None:
+        seen: list[Event] = []
+        engine = Engine()
+        engine.use_scene(Scene(name="demo", root=_Recorder(seen)))
+        engine._pending_resize = (100, 40)
+        engine.step(0.016)
+        assert [event.kind for event in seen] == [RESIZE]
+        assert seen[0].data == {"width": 100, "height": 40}
+
+    def test_resize_updates_the_compositor(self) -> None:
+        engine = Engine()
+        engine._pending_resize = (100, 40)
+        engine.step(0.016)
+        assert engine.compositor.size() == Vec2(100, 40)
+
+    def test_resize_is_applied_once_and_cleared(self) -> None:
+        seen: list[Event] = []
+        engine = Engine()
+        engine.use_scene(Scene(name="demo", root=_Recorder(seen)))
+        engine._pending_resize = (100, 40)
+        engine.step(0.016)
+        assert engine._pending_resize is None
+        engine.step(0.016)
+        assert [event.kind for event in seen] == [RESIZE]
+
+    def test_nothing_announced_without_a_pending_resize(self) -> None:
+        seen: list[Event] = []
+        engine = Engine()
+        engine.use_scene(Scene(name="demo", root=_Recorder(seen)))
+        engine.step(0.016)
+        assert seen == []
 
 
 class TestEngineFactories:
