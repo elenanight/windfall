@@ -28,6 +28,7 @@ import argparse
 import re
 import subprocess
 import tomllib
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -130,14 +131,20 @@ def _changelog_has_section(version: str) -> bool:
     return bool(changelog_section(version))
 
 
-def _ensure_changelog_section(version: str) -> None:
-    """If ``## [version]`` is missing, move the ``## [Unreleased]`` body into it."""
-    changelog_path = CHANGELOG
-    text = changelog_path.read_text(encoding="utf-8")
+def _release_date() -> str:
+    """Today's local calendar date in CHANGELOG heading form (``YYYY-MM-DD``)."""
+    # Local, not UTC: a cut late in the evening must not stamp tomorrow.
+    return datetime.now().astimezone().date().isoformat()
 
-    # Check if the target section already exists
-    if _changelog_has_section(version):
-        return
+
+def _promoted_changelog(version: str, path: Path | None = None) -> str | None:
+    """CHANGELOG text with ``## [Unreleased]`` promoted to ``## [version]``.
+
+    Pure: reads and returns, never writes. Returns ``None`` when there is
+    nothing to promote (no Unreleased section, or an empty body).
+    """
+    changelog_path = path or CHANGELOG
+    text = changelog_path.read_text(encoding="utf-8")
 
     # Pull the body from ## [Unreleased]
     unreleased_pattern = re.compile(
@@ -146,19 +153,28 @@ def _ensure_changelog_section(version: str) -> None:
     )
     unreleased_match = unreleased_pattern.search(text)
     if not unreleased_match:
-        return  # nothing to promote
+        return None  # nothing to promote
 
     unreleased_body = unreleased_match.group(1).strip()
 
     # Build a minimal ``## [version]`` section from the unreleased bullets
     bullets = unreleased_body.split("\n") if unreleased_body else []
-    section_lines = [f"## [{version}] - 2026-09-22", "", "### Added"]
+    section_lines = [f"## [{version}] - {_release_date()}", "", "### Added"]
     section_lines += [b.strip() for b in bullets if b.strip()]
     section_content = "\n".join(section_lines)
 
     # Replace the ``## [Unreleased]`` marker with the new section
-    new_text = re.sub(r"^## \[Unreleased\]", section_content, text, count=1, flags=re.MULTILINE)
-    changelog_path.write_text(new_text, encoding="utf-8")
+    return re.sub(r"^## \[Unreleased\]", section_content, text, count=1, flags=re.MULTILINE)
+
+
+def _ensure_changelog_section(version: str) -> None:
+    """If ``## [version]`` is missing, move the ``## [Unreleased]`` body into it."""
+    if _changelog_has_section(version):
+        return
+    new_text = _promoted_changelog(version)
+    if new_text is None:
+        return  # nothing to promote
+    CHANGELOG.write_text(new_text, encoding="utf-8")
 
 
 def verify(version: str | None = None) -> tuple[bool, list[str]]:
@@ -184,11 +200,10 @@ def verify(version: str | None = None) -> tuple[bool, list[str]]:
     except ValueError as exc:
         problems.append(str(exc))
 
-    if not _changelog_has_section(version):
-        _ensure_changelog_section(version)
-        # Re-check after ensure attempt; if still missing, record the problem
-        if not _changelog_has_section(version):
-            problems.append(f"CHANGELOG has no non-empty ## [{version}] section")
+    # A pending release is cuttable if the section already exists or a cut
+    # would be able to promote the Unreleased body. Never write from here.
+    if not _changelog_has_section(version) and _promoted_changelog(version) is None:
+        problems.append(f"CHANGELOG has no non-empty ## [{version}] section")
 
     return (not problems, problems)
 

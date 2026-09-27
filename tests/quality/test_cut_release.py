@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import pytest
@@ -37,6 +38,17 @@ def _write_tree(tmp_path: Path, version: str = "0.2.6") -> None:
     tmp_path.joinpath("windfall", "__init__.py").write_text(
         f'__version__ = "{version}"\n', encoding="utf-8"
     )
+
+
+def _point(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point the script at a temp tree, restoring the real paths afterwards."""
+    for name, path in {
+        "PYPROJECT": tmp_path / "pyproject.toml",
+        "INIT": tmp_path / "windfall" / "__init__.py",
+        "README": tmp_path / "README.md",
+        "CHANGELOG": tmp_path / "CHANGELOG.md",
+    }.items():
+        monkeypatch.setattr(cr, name, path)
 
 
 class TestPrior:
@@ -84,46 +96,95 @@ class TestSecurityBlock:
 
 
 class TestVerify:
-    def test_verify_clean_after_dry_run_tree(self, tmp_path) -> None:
+    def test_verify_clean_after_dry_run_tree(self, tmp_path, monkeypatch) -> None:
         _write_tree(tmp_path)
-        cr.PYPROJECT = tmp_path / "pyproject.toml"
-        cr.INIT = tmp_path / "windfall" / "__init__.py"
-        cr.README = tmp_path / "README.md"
-        cr.CHANGELOG = tmp_path / "CHANGELOG.md"
+        _point(tmp_path, monkeypatch)
         ok, problems = cr.verify("0.2.6")
         assert ok, problems
 
-    def test_verify_detects_init_mismatch(self, tmp_path) -> None:
+    def test_verify_detects_init_mismatch(self, tmp_path, monkeypatch) -> None:
         _write_tree(tmp_path)
-        cr.PYPROJECT = tmp_path / "pyproject.toml"
-        cr.INIT = tmp_path / "windfall" / "__init__.py"
-        cr.README = tmp_path / "README.md"
-        cr.CHANGELOG = tmp_path / "CHANGELOG.md"
-        cr.INIT.write_text('__version__ = "0.2.5"\n', encoding="utf-8")
+        _point(tmp_path, monkeypatch)
+        tmp_path.joinpath("windfall", "__init__.py").write_text(
+            '__version__ = "0.2.5"\n', encoding="utf-8"
+        )
         ok, problems = cr.verify("0.2.6")
         assert not ok
         assert any("__init__.py" in problem for problem in problems)
+
+    def test_verify_never_writes_the_changelog(self, tmp_path, monkeypatch) -> None:
+        """--check is a read-only gate: a cuttable pending cut must not write."""
+        _write_tree(tmp_path, version="0.2.7")
+        _point(tmp_path, monkeypatch)
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text(
+            "# Changelog\n\n## [Unreleased]\n\n### Added\n\n- A windfall feature.\n",
+            encoding="utf-8",
+        )
+        before = changelog.read_bytes()
+        ok, problems = cr.verify("0.2.7")
+        # The Unreleased body would promote cleanly, so this is cuttable…
+        assert ok, problems
+        # …but verifying it must leave the file byte-identical.
+        assert changelog.read_bytes() == before
+
+    def test_verify_reports_unpromotable_changelog(self, tmp_path, monkeypatch) -> None:
+        _write_tree(tmp_path, version="0.2.7")
+        _point(tmp_path, monkeypatch)
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text(
+            "# Changelog\n\n## [0.2.6] - 2026-09-01\n\nOld.\n", encoding="utf-8"
+        )
+        ok, problems = cr.verify("0.2.7")
+        assert not ok
+        assert any("CHANGELOG" in problem for problem in problems)
+
+
+class TestChangelogPromotion:
+    def test_promotion_uses_todays_date_not_a_stale_literal(self, tmp_path) -> None:
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text(
+            "# Changelog\n\n## [Unreleased]\n\n### Added\n\n- A windfall feature.\n",
+            encoding="utf-8",
+        )
+        promoted = cr._promoted_changelog("0.2.7", changelog)
+        assert promoted is not None
+        # time.strftime keeps this independent of the implementation under test.
+        assert f"## [0.2.7] - {time.strftime('%Y-%m-%d')}" in promoted
+        assert "2026-09-22" not in promoted
+        assert "## [Unreleased]" not in promoted
+
+    def test_promotion_returns_none_with_nothing_to_promote(self, tmp_path) -> None:
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text(
+            "# Changelog\n\n## [0.2.6] - 2026-09-01\n\nOld.\n", encoding="utf-8"
+        )
+        assert cr._promoted_changelog("0.2.7", changelog) is None
+
+    def test_promotion_leaves_the_file_untouched(self, tmp_path) -> None:
+        changelog = tmp_path / "CHANGELOG.md"
+        changelog.write_text(
+            "# Changelog\n\n## [Unreleased]\n\n### Added\n\n- A windfall feature.\n",
+            encoding="utf-8",
+        )
+        before = changelog.read_bytes()
+        cr._promoted_changelog("0.2.7", changelog)
+        assert changelog.read_bytes() == before
 
 
 class TestGate:
     def test_gate_passes_when_nothing_pending(self, tmp_path, monkeypatch) -> None:
         _write_tree(tmp_path)
-        _point(tmp_path)
+        _point(tmp_path, monkeypatch)
         monkeypatch.setattr(cr, "last_released_tag", lambda: "0.2.6")
         assert cr.main(["--check"]) == 0
 
     def test_gate_fails_when_pending_but_not_cuttable(self, tmp_path, monkeypatch) -> None:
         _write_tree(tmp_path, version="0.2.7")
-        _point(tmp_path)
+        _point(tmp_path, monkeypatch)
         tmp_path.joinpath("CHANGELOG.md").write_text(
             "# Changelog\n\n## [0.2.6] - 2026-09-01\n\nOld.\n", encoding="utf-8"
         )
         monkeypatch.setattr(cr, "last_released_tag", lambda: "0.2.6")
         assert cr.main(["--check"]) == 1
 
-
-def _point(tmp_path: Path) -> None:
-    cr.PYPROJECT = tmp_path / "pyproject.toml"
-    cr.INIT = tmp_path / "windfall" / "__init__.py"
-    cr.README = tmp_path / "README.md"
-    cr.CHANGELOG = tmp_path / "CHANGELOG.md"
