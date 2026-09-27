@@ -24,9 +24,14 @@ dev = [
     "ruff>=0.5.0",
 ]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["windfall*"]
+[tool.setuptools]
+# "windfall.examples" maps the top-level examples/ dir into the package so
+# `--example` works from an installed wheel. Shipping them as top-level
+# modules would put generic names (menu, snake) into site-packages.
+packages = ["windfall", "windfall_cli", "windfall.examples"]
+
+[tool.setuptools.package-dir]
+"windfall.examples" = "examples"
 
 [tool.setuptools.package-data]
 windfall_cli = ["templates/*", "templates/**/*"]
