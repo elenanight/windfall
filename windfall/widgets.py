@@ -30,64 +30,46 @@ class Label(Component):
         self._text.set_text(text)
 
 
-class Header(Component):
+class _Bar(Component):
+    """Shared implementation of the full-width header and footer bars.
+
+    A bordered box around a centered, styled label. Both bars behave
+    identically, so they differ only in name and documentation.
+    """
+
+    def __init__(self, text: str = "", *, border: str | None = "cyan", fg: str | None = "white") -> None:
+        super().__init__()
+        self._text = text
+        self._border = border
+        self._fg = fg
+        self._label = Label(text, style=Style(fg=fg), align="center")
+        self._box = Box(self._label, border_style=Style(fg=border), padding=0)
+
+    def size(self) -> Vec2:
+        return self._box.size()
+
+    def draw(self, canvas, rect: Rect) -> None:
+        self._box.draw(canvas, rect)
+
+    def set_text(self, text: str) -> None:
+        self._text = text
+        self._label.set_text(text)
+
+    def set_colors(self, *, border: str | None = None, fg: str | None = None) -> None:
+        if border is not None:
+            self._border = border
+        if fg is not None:
+            self._fg = fg
+        self._label = Label(self._text, style=Style(fg=self._fg), align="center")
+        self._box = Box(self._label, border_style=Style(fg=self._border), padding=0)
+
+
+class Header(_Bar):
     """A full-width bar assembled from a bordered box and a styled label."""
 
-    def __init__(self, text: str = "", *, border: str | None = "cyan", fg: str | None = "white") -> None:
-        super().__init__()
-        self._text = text
-        self._border = border
-        self._fg = fg
-        self._label = Label(text, style=Style(fg=fg), align="center")
-        self._box = Box(self._label, border_style=Style(fg=border), padding=0)
 
-    def size(self) -> Vec2:
-        return self._box.size()
-
-    def draw(self, canvas, rect: Rect) -> None:
-        self._box.draw(canvas, rect)
-
-    def set_text(self, text: str) -> None:
-        self._text = text
-        self._label.set_text(text)
-
-    def set_colors(self, *, border: str | None = None, fg: str | None = None) -> None:
-        if border is not None:
-            self._border = border
-        if fg is not None:
-            self._fg = fg
-        self._label = Label(self._text, style=Style(fg=self._fg), align="center")
-        self._box = Box(self._label, border_style=Style(fg=self._border), padding=0)
-
-
-class Footer(Component):
+class Footer(_Bar):
     """A full-width bar for the bottom of the screen, mirroring ``Header``."""
-
-    def __init__(self, text: str = "", *, border: str | None = "cyan", fg: str | None = "white") -> None:
-        super().__init__()
-        self._text = text
-        self._border = border
-        self._fg = fg
-        self._label = Label(text, style=Style(fg=fg), align="center")
-        self._box = Box(self._label, border_style=Style(fg=border), padding=0)
-
-    def size(self) -> Vec2:
-        return self._box.size()
-
-    def draw(self, canvas, rect: Rect) -> None:
-        self._box.draw(canvas, rect)
-
-    def set_text(self, text: str) -> None:
-        self._text = text
-        self._label.set_text(text)
-
-    def set_colors(self, *, border: str | None = None, fg: str | None = None) -> None:
-        if border is not None:
-            self._border = border
-        if fg is not None:
-            self._fg = fg
-        self._label = Label(self._text, style=Style(fg=self._fg), align="center")
-        self._box = Box(self._label, border_style=Style(fg=self._border), padding=0)
 
 
 class Button(Component):
@@ -337,7 +319,83 @@ def _pad_equal(*lists: list[str]) -> list[list[str]]:
     return [[item.ljust(width) for item in choices] for choices in lists]
 
 
-class HeaderEditor(Panel):
+class _BarEditor(Panel):
+    """Shared implementation of the header and footer editor panels.
+
+    Subclasses set :attr:`_noun` to pick the field label; everything else —
+    the text field, the two color pickers, the visibility toggle, and the
+    Update/Cancel buttons — is identical between the two editors.
+    """
+
+    _noun = "Bar"
+
+    def __init__(
+        self,
+        *,
+        text: str = "",
+        border: str = "cyan",
+        fg: str = "white",
+        visible: bool = True,
+        border_choices=None,
+        text_choices=None,
+        on_save=None,
+        on_cancel=None,
+        title: str,
+    ) -> None:
+        self._text = text
+        self._border_choices = list(border_choices or BORDER_COLORS)
+        self._text_choices = list(text_choices or TEXT_COLORS)
+        self.on_save = on_save
+        self.on_cancel = on_cancel
+        self._field = TextInput(text)
+        border_shown, fg_shown, vis_shown = _pad_equal(
+            self._border_choices, self._text_choices, ["Yes", "No"]
+        )
+        self._borders = ListView(items=border_shown)
+        self._borders.select(_index_of(self._border_choices, border))
+        self._fgs = ListView(items=fg_shown)
+        self._fgs.select(_index_of(self._text_choices, fg))
+        self._visible = ListView(items=vis_shown)
+        self._visible.select(0 if visible else 1)
+        body = Column()
+        body.add(Label(f"{self._noun} text:"))
+        body.add(self._field)
+        body.add(Connector("available"))
+        thirds = Row(fill=True)
+        left = Column()
+        left.add(Label("Border:"))
+        left.add(self._borders)
+        middle = Column()
+        middle.add(Label("Text:"))
+        middle.add(self._fgs)
+        right = Column()
+        right.add(Label("Visible:"))
+        right.add(self._visible)
+        thirds.add(left)
+        thirds.add(middle)
+        thirds.add(right)
+        body.add(thirds)
+        body.add(Connector("available"))
+        actions = Row()
+        actions.add(Button("Update", on_activate=self._commit))
+        actions.add(Button("Cancel", on_activate=self._abort))
+        body.add(actions)
+        super().__init__(body, title=title, padding=1)
+
+    def _commit(self) -> None:
+        text = self._field.value.strip() or self._text
+        border = self._border_choices[self._borders.selection]
+        fg = self._text_choices[self._fgs.selection]
+        visible = self._visible.selection == 0
+        if self.on_save is not None:
+            self.on_save(text, border, fg, visible)
+
+    def _abort(self) -> None:
+        if self.on_cancel is not None:
+            self.on_cancel()
+
+
+class HeaderEditor(_BarEditor):
     """In-place editor panel for header text and colors.
 
     A ``Panel`` subclass wrapping a full-width ``TextInput``, side-by-side
@@ -347,6 +405,8 @@ class HeaderEditor(Panel):
     Events reach the nested widgets through the inherited panel/box
     traversal.
     """
+
+    _noun = "Header"
 
     def __init__(
         self,
@@ -361,61 +421,23 @@ class HeaderEditor(Panel):
         on_cancel=None,
         title: str = "Edit header bar",
     ) -> None:
-        self._text = text
-        self._border_choices = list(border_choices or BORDER_COLORS)
-        self._text_choices = list(text_choices or TEXT_COLORS)
-        self.on_save = on_save
-        self.on_cancel = on_cancel
-        self._field = TextInput(text)
-        border_shown, fg_shown, vis_shown = _pad_equal(
-            self._border_choices, self._text_choices, ["Yes", "No"]
+        super().__init__(
+            text=text,
+            border=border,
+            fg=fg,
+            visible=visible,
+            border_choices=border_choices,
+            text_choices=text_choices,
+            on_save=on_save,
+            on_cancel=on_cancel,
+            title=title,
         )
-        self._borders = ListView(items=border_shown)
-        self._borders.select(_index_of(self._border_choices, border))
-        self._fgs = ListView(items=fg_shown)
-        self._fgs.select(_index_of(self._text_choices, fg))
-        self._visible = ListView(items=vis_shown)
-        self._visible.select(0 if visible else 1)
-        body = Column()
-        body.add(Label("Header text:"))
-        body.add(self._field)
-        body.add(Connector("available"))
-        thirds = Row(fill=True)
-        left = Column()
-        left.add(Label("Border:"))
-        left.add(self._borders)
-        middle = Column()
-        middle.add(Label("Text:"))
-        middle.add(self._fgs)
-        right = Column()
-        right.add(Label("Visible:"))
-        right.add(self._visible)
-        thirds.add(left)
-        thirds.add(middle)
-        thirds.add(right)
-        body.add(thirds)
-        body.add(Connector("available"))
-        actions = Row()
-        actions.add(Button("Update", on_activate=self._commit))
-        actions.add(Button("Cancel", on_activate=self._abort))
-        body.add(actions)
-        super().__init__(body, title=title, padding=1)
-
-    def _commit(self) -> None:
-        text = self._field.value.strip() or self._text
-        border = self._border_choices[self._borders.selection]
-        fg = self._text_choices[self._fgs.selection]
-        visible = self._visible.selection == 0
-        if self.on_save is not None:
-            self.on_save(text, border, fg, visible)
-
-    def _abort(self) -> None:
-        if self.on_cancel is not None:
-            self.on_cancel()
 
 
-class FooterEditor(Panel):
+class FooterEditor(_BarEditor):
     """In-place editor panel for footer text and colors, mirroring ``HeaderEditor``."""
+
+    _noun = "Footer"
 
     def __init__(
         self,
@@ -430,57 +452,17 @@ class FooterEditor(Panel):
         on_cancel=None,
         title: str = "Edit footer bar",
     ) -> None:
-        self._text = text
-        self._border_choices = list(border_choices or BORDER_COLORS)
-        self._text_choices = list(text_choices or TEXT_COLORS)
-        self.on_save = on_save
-        self.on_cancel = on_cancel
-        self._field = TextInput(text)
-        border_shown, fg_shown, vis_shown = _pad_equal(
-            self._border_choices, self._text_choices, ["Yes", "No"]
+        super().__init__(
+            text=text,
+            border=border,
+            fg=fg,
+            visible=visible,
+            border_choices=border_choices,
+            text_choices=text_choices,
+            on_save=on_save,
+            on_cancel=on_cancel,
+            title=title,
         )
-        self._borders = ListView(items=border_shown)
-        self._borders.select(_index_of(self._border_choices, border))
-        self._fgs = ListView(items=fg_shown)
-        self._fgs.select(_index_of(self._text_choices, fg))
-        self._visible = ListView(items=vis_shown)
-        self._visible.select(0 if visible else 1)
-        body = Column()
-        body.add(Label("Footer text:"))
-        body.add(self._field)
-        body.add(Connector("available"))
-        thirds = Row(fill=True)
-        left = Column()
-        left.add(Label("Border:"))
-        left.add(self._borders)
-        middle = Column()
-        middle.add(Label("Text:"))
-        middle.add(self._fgs)
-        right = Column()
-        right.add(Label("Visible:"))
-        right.add(self._visible)
-        thirds.add(left)
-        thirds.add(middle)
-        thirds.add(right)
-        body.add(thirds)
-        body.add(Connector("available"))
-        actions = Row()
-        actions.add(Button("Update", on_activate=self._commit))
-        actions.add(Button("Cancel", on_activate=self._abort))
-        body.add(actions)
-        super().__init__(body, title=title, padding=1)
-
-    def _commit(self) -> None:
-        text = self._field.value.strip() or self._text
-        border = self._border_choices[self._borders.selection]
-        fg = self._text_choices[self._fgs.selection]
-        visible = self._visible.selection == 0
-        if self.on_save is not None:
-            self.on_save(text, border, fg, visible)
-
-    def _abort(self) -> None:
-        if self.on_cancel is not None:
-            self.on_cancel()
 
 
 class Hotkey(Component):

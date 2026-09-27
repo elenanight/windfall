@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from tests.helpers import editor_buttons, find_all, hosted, key, move, render
 from windfall.canvas import Canvas
 from windfall.events import ACTIVATE, Event
@@ -242,37 +244,51 @@ class TestListView:
         assert canvas.to_rich().spans
 
 
-class TestHeader:
-    def test_not_focusable(self) -> None:
-        assert Header("hi").focusable is False
+@pytest.mark.parametrize("bar_cls", [Header, Footer])
+class TestBar:
+    """Header and Footer share one implementation, so they share these tests."""
 
-    def test_size_wraps_label(self) -> None:
-        assert Header("hi").size() == Vec2(4, 3)
+    def test_not_focusable(self, bar_cls) -> None:
+        assert bar_cls("hi").focusable is False
 
-    def test_draw_frames_centered_label(self) -> None:
-        assert render(Header("hi")) == [
+    def test_size_wraps_label(self, bar_cls) -> None:
+        assert bar_cls("hi").size() == Vec2(4, 3)
+
+    def test_draw_frames_centered_label(self, bar_cls) -> None:
+        assert render(bar_cls("hi")) == [
             "┌──┐",
             "│hi│",
             "└──┘",
         ]
 
-    def test_set_text_updates(self) -> None:
-        header = Header("aa")
-        header.set_text("b")
-        assert header.size() == Vec2(3, 3)
-        assert render(header) == [
+    def test_set_text_updates(self, bar_cls) -> None:
+        bar = bar_cls("aa")
+        bar.set_text("b")
+        assert bar.size() == Vec2(3, 3)
+        assert render(bar) == [
             "┌─┐",
             "│b│",
             "└─┘",
         ]
 
-    def test_set_colors_keeps_text(self) -> None:
-        header = Header("hi", border="red", fg="green")
-        header.set_colors(border="blue", fg="yellow")
-        assert render(header) == [
+    def test_set_colors_keeps_text(self, bar_cls) -> None:
+        bar = bar_cls("hi", border="red", fg="green")
+        bar.set_colors(border="blue", fg="yellow")
+        assert render(bar) == [
             "┌──┐",
             "│hi│",
             "└──┘",
+        ]
+
+    def test_set_text_and_colors_together(self, bar_cls) -> None:
+        bar = bar_cls("aa")
+        bar.set_text("b")
+        bar.set_colors(border="blue", fg="yellow")
+        assert bar.size() == Vec2(3, 3)
+        assert render(bar) == [
+            "┌─┐",
+            "│b│",
+            "└─┘",
         ]
 
 
@@ -373,32 +389,6 @@ class TestHeaderEditor:
         shafts = find_all(HeaderEditor(text="Hi"), Connector)
         assert len(shafts) == 2
         assert all(shaft.state == "available" for shaft in shafts)
-
-
-class TestFooter:
-    def test_not_focusable(self) -> None:
-        assert Footer("hi").focusable is False
-
-    def test_size_wraps_label(self) -> None:
-        assert Footer("hi").size() == Vec2(4, 3)
-
-    def test_draw_frames_centered_label(self) -> None:
-        assert render(Footer("hi")) == [
-            "┌──┐",
-            "│hi│",
-            "└──┘",
-        ]
-
-    def test_set_text_and_colors(self) -> None:
-        footer = Footer("aa")
-        footer.set_text("b")
-        footer.set_colors(border="blue", fg="yellow")
-        assert footer.size() == Vec2(3, 3)
-        assert render(footer) == [
-            "┌─┐",
-            "│b│",
-            "└─┘",
-        ]
 
 
 class TestFooterEditor:
