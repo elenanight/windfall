@@ -21,12 +21,12 @@ from __future__ import annotations
 import argparse
 import re
 import subprocess
-import tomllib
 from pathlib import Path
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
-PYPROJECT = ROOT / "pyproject.toml"
+#: The one place the version is written by hand; everything else derives from it.
+VERSION = ROOT / "VERSION"
 README = ROOT / "README.md"
 INIT = ROOT / "windfall" / "__init__.py"
 ROADMAP = ROOT / "wiki" / "roadmap.md"
@@ -60,9 +60,12 @@ DEPENDABOT_URL = REPO_URL + "/security/dependabot"
 
 
 def project_version(path: Path | None = None) -> str:
-    """Read the released version from pyproject.toml."""
-    with (path or PYPROJECT).open("rb") as handle:
-        return tomllib.load(handle)["project"]["version"]
+    """Read the version from the VERSION file, the single source of truth.
+
+    ``pyproject.toml`` declares its version dynamic and reads this same file
+    at build time, so nothing else needs to be edited by hand.
+    """
+    return (path or VERSION).read_text(encoding="utf-8").strip()
 
 
 def build_badges(slug: str, version: str) -> str:
