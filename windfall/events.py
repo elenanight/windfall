@@ -12,6 +12,8 @@ QUIT = "quit"
 CANCEL = "cancel"
 FOCUS = "focus"
 BLUR = "blur"
+# TICK is reserved: ticking already reaches a scene through Scene.update(dt)
+# and Timeline, so emitting an event every frame would only duplicate it.
 TICK = "tick"
 RESIZE = "resize"
 

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from windfall.anim import Timeline
-from windfall.events import MOVE, Event
+from windfall.events import BLUR, FOCUS, MOVE, Event
 from windfall.geom import Rect, Vec2
 
 
@@ -32,12 +34,23 @@ class Scene:
     ``root`` is a component/layout, typically a ``Column`` of widgets. The
     scene forwards events and ticks down the tree and cycles keyboard focus
     across focusable widgets when nothing else consumes the arrow keys.
+
+    Focus moves the scene makes itself — cycling with the arrow keys, and
+    entering or leaving a focus scope — are announced as ``FOCUS`` and
+    ``BLUR`` events through :attr:`emit`. Focus set directly on a widget
+    (``widget.focus(True)``) is *not* announced, because the scene is not in
+    that call; a scene that needs to observe those should route them through
+    :meth:`focus_to`.
     """
 
     def __init__(self, name: str = "", root=None) -> None:
         self.name = name
         self.root = root
         self.timeline = Timeline()
+        #: Set by the engine that owns this scene; called with events the
+        #: scene wants to inject back into the engine's queue. Left unset
+        #: for a scene driven directly, in which case nothing is emitted.
+        self.emit: Callable[[Event], None] | None = None
         self._focus_scope = None
         self._saved_focus = None
 
@@ -66,6 +79,18 @@ class Scene:
                 return True
         return False
 
+    def focus_to(self, item, active: bool = True) -> None:
+        """Focus or blur ``item`` and announce it as a FOCUS/BLUR event.
+
+        Use this instead of calling ``widget.focus()`` directly when the
+        change should be observable through the event vocabulary.
+        """
+        if item is None:
+            return
+        item.focus(active)
+        if self.emit is not None:
+            self.emit(Event(FOCUS if active else BLUR, {"widget": item}))
+
     def focus_next(self, step: int = 1) -> None:
         root = self._focus_scope if self._focus_scope is not None else self.root
         items = list(focusables(root)) if root is not None else []
@@ -73,10 +98,10 @@ class Scene:
             return
         focused_index = next((i for i, item in enumerate(items) if item.focused), None)
         if focused_index is None:
-            items[0].focus(True)
+            self.focus_to(items[0])
             return
-        items[focused_index].focus(False)
-        items[(focused_index + step) % len(items)].focus(True)
+        self.focus_to(items[focused_index], False)
+        self.focus_to(items[(focused_index + step) % len(items)])
 
     def set_focus_scope(self, node) -> None:
         """Trap arrow-key focus inside ``node`` until the scope is cleared.
@@ -91,11 +116,12 @@ class Scene:
         current = next((item for item in focusables(self.root) if item.focused), None)
         self._saved_focus = current
         for item in focusables(self.root):
-            item.focus(False)
+            if item.focused:
+                self.focus_to(item, False)
         self._focus_scope = node
         scoped = list(focusables(node))
         if scoped:
-            scoped[0].focus(True)
+            self.focus_to(scoped[0])
 
     def clear_focus_scope(self) -> None:
         """Release a focus scope and restore the previously focused widget."""
@@ -103,10 +129,11 @@ class Scene:
         self._focus_scope = None
         if scope is not None:
             for item in focusables(scope):
-                item.focus(False)
+                if item.focused:
+                    self.focus_to(item, False)
         saved, self._saved_focus = self._saved_focus, None
         if saved is not None:
-            saved.focus(True)
+            self.focus_to(saved)
 
 
 class Frame:

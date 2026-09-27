@@ -42,6 +42,9 @@ class Engine:
         self._pending_resize: tuple[int, int] | None = None
 
     def use_scene(self, scene) -> None:
+        # Give the scene a way to announce its own events (FOCUS/BLUR) back
+        # into this engine's queue.
+        scene.emit = self.post_event
         self.frames.push(Frame(scene))
 
     def make_header(self, text: str = "", *, border: str = "cyan", fg: str = "white") -> Header:

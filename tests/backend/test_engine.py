@@ -7,9 +7,10 @@ import pytest
 from windfall.anim import Tween, ease_linear
 from windfall.component import Component
 from windfall.engine import Engine
-from windfall.events import ACTIVATE, QUIT, RESIZE, Event
+from windfall.events import ACTIVATE, FOCUS, MOVE, QUIT, RESIZE, Event
 from windfall.geom import Vec2
 from windfall.input import InputReader
+from windfall.layout import Column
 from windfall.primitives import Divider
 from windfall.scene import Scene
 from windfall.widgets import Button, Footer, Header, Label, ListView, TextInput
@@ -197,6 +198,39 @@ class TestResizeEvent:
         engine.use_scene(Scene(name="demo", root=_Recorder(seen)))
         engine.step(0.016)
         assert seen == []
+
+
+class TestFocusEventDelivery:
+    """use_scene must wire the scene's emitter, so FOCUS reaches a handler."""
+
+    def test_focus_events_reach_a_scene_handler(self) -> None:
+        seen: list[Event] = []
+
+        class _RecordingButton(Button):
+            def handle(self, event: Event) -> bool:
+                seen.append(event)
+                return super().handle(event)
+
+        scene_buttons = [_RecordingButton("a"), _RecordingButton("b")]
+        engine = Engine()
+        engine.use_scene(
+            Scene(name="demo", root=Column().add(scene_buttons[0]).add(scene_buttons[1]))
+        )
+        engine.post_event(Event(MOVE, {"direction": "down"}))
+        engine.step(0.016)
+        kinds = [event.kind for event in seen]
+        # The move reaches the buttons first, then the FOCUS the scene emitted
+        # while handling it is delivered in the same step.
+        assert FOCUS in kinds
+        assert kinds[-1] == FOCUS
+        assert seen[-1].data["widget"] is scene_buttons[0]
+
+    def test_scene_emitter_is_wired_by_use_scene(self) -> None:
+        engine = Engine()
+        scene = Scene(name="demo")
+        assert scene.emit is None
+        engine.use_scene(scene)
+        assert scene.emit is not None
 
 
 class TestEngineFactories:
