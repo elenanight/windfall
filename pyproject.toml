@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=84.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -23,7 +23,7 @@ windfall = "windfall_cli.cli:main"
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
-    "ruff>=0.5.0",
+    "ruff>=0.16.9",
 ]
 
 [tool.setuptools]
