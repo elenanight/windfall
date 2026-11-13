@@ -17,9 +17,9 @@ idempotent and has a read-only ``--check`` gate for CI plus a side-effecting
 ``--apply`` (keep an eye on ``--dry-run`` first).
 
 Usage:
-    utp run python scripts/cut_release.py --check          # CI gate, exit 1 if not cuttable
-    utp run python scripts/cut_release.py --apply --dry-run
-    utp run python scripts/cut_release.py --apply          # tag + release + slid SECURITY window
+    uv run python scripts/cut_release.py --check          # CI gate, exit 1 if not cuttable
+    uv run python scripts/cut_release.py --apply --dry-run
+    uv run python scripts/cut_release.py --apply          # tag + release + slid SECURITY window
 """
 
 from __future__ import annotations

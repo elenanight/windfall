@@ -37,6 +37,8 @@ class Scaffolder:
 
     def _copy_tree(self, source: Path, target: Path, name: str, windfall_block: str) -> None:
         for path in source.rglob("*"):
+            if "__pycache__" in path.parts or path.suffix in {".pyc", ".pyo"}:
+                continue
             if path.is_dir():
                 continue
             destination = target / path.relative_to(source)

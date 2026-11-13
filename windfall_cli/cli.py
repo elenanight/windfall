@@ -11,10 +11,12 @@ import argparse
 import runpy
 import subprocess
 import sys
+import time
 from argparse import Namespace
 from pathlib import Path
 
 from windfall import __version__
+from windfall_cli.progress import InstallProgressPlan, ProgressRenderer, RemoveProgressPlan
 from windfall_cli.scaffold import Scaffolder
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -40,7 +42,12 @@ def build_parser() -> argparse.ArgumentParser:
         description="Windfall: a class-based TUI compositor and engine.",
     )
     parser.add_argument("--version", action="version", version=f"windfall {__version__}")
+    _add_shortcut_flags(parser)
+    _add_subcommands(parser.add_subparsers(dest="command"))
+    return parser
 
+
+def _add_shortcut_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--create", metavar="NAME", default=None, help="scaffold a new app (alias for `new`)"
     )
@@ -53,20 +60,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--run", metavar="PATH", default=None, help="run an app file (alias for `run`)"
     )
+    parser.add_argument("--demo", action="store_true", help="run the built-in demo (alias for `demo`)")
+    parser.add_argument("--menu", action="store_true", help="open the project manager (alias for `menu`)")
+    parser.add_argument("--check", action="store_true", help="headless smoke check (alias for `check`)")
     parser.add_argument(
-        "--demo", action="store_true", help="run the built-in demo (alias for `demo`)"
-    )
-    parser.add_argument(
-        "--menu", action="store_true", help="open the project manager (alias for `menu`)"
-    )
-    parser.add_argument(
-        "--check", action="store_true", help="headless smoke check (alias for `check`)"
-    )
-    parser.add_argument(
-        "--list",
-        metavar="PATH",
-        default=None,
-        help="list scene classes in a file (alias for `list`)",
+        "--list", metavar="PATH", default=None, help="list scene classes in a file (alias for `list`)"
     )
     parser.add_argument(
         "--example",
@@ -80,19 +78,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--ticks", type=int, default=None, help="ticks for headless runs")
 
-    sub = parser.add_subparsers(dest="command")
 
+def _add_subcommands(sub: argparse._SubParsersAction) -> None:
     cmd_new = sub.add_parser("new", help="scaffold a new app from a template")
     cmd_new.add_argument("name")
     cmd_new.add_argument("--template", default="app", help="template to copy (default: app)")
     cmd_new.add_argument(
         "--dest", default=None, help="parent directory (default: current dir; creates project/NAME)"
     )
-    cmd_new.add_argument(
-        "--yes",
-        action="store_true",
-        help="run the new app immediately without asking",
-    )
+    cmd_new.add_argument("--yes", action="store_true", help="run the new app immediately without asking")
 
     cmd_run = sub.add_parser("run", help="run an app file (default: the demo)")
     cmd_run.add_argument("path", nargs="?", default=None, help="python file to run")
@@ -102,9 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
     cmd_demo.add_argument("--ticks", type=int, default=120, help="ticks for --headless")
 
     cmd_menu = sub.add_parser("menu", help="browse, open, archive, and delete projects")
-    cmd_menu.add_argument(
-        "--dir", default=None, help="parent directory (default: current dir; scans DIR/project)"
-    )
+    cmd_menu.add_argument("--dir", default=None, help="parent directory (default: current dir; scans DIR/project)")
 
     cmd_example = sub.add_parser("example", help="run a bundled example")
     cmd_example.add_argument("name", choices=["menu", "bouncer", "animation", "snake"])
@@ -117,9 +109,28 @@ def build_parser() -> argparse.ArgumentParser:
     cmd_list = sub.add_parser("list", help="list scene classes in an app file")
     cmd_list.add_argument("path", help="python file to inspect")
 
-    sub.add_parser("help", help="show this help")
+    cmd_install = sub.add_parser(
+        "install",
+        help="install Windfall as a uv tool from a source path",
+        description=(
+            "Install Windfall as a uv tool from SOURCE. By default SOURCE is '.' (the current "
+            "directory), intended for use from a Windfall source checkout; pass an explicit "
+            "source path when running elsewhere."
+        ),
+    )
+    cmd_install.add_argument(
+        "source",
+        nargs="?",
+        default=".",
+        help="source path to install from (default: current directory)",
+    )
+    cmd_install.add_argument(
+        "--force", action="store_true", help="reinstall if already installed"
+    )
 
-    return parser
+    sub.add_parser("uninstall", help="remove the installed Windfall uv tool cleanly")
+    sub.add_parser("remove", help="remove the installed Windfall uv tool cleanly (alias for uninstall)")
+    sub.add_parser("help", help="show this help")
 
 
 def _cmd_new(args) -> int:
@@ -225,6 +236,153 @@ def _cmd_examples(_args) -> int:
     return 0
 
 
+class InstallSourceValidator:
+    """Validate install source paths before invoking uv."""
+
+    @staticmethod
+    def is_valid(source: str) -> bool:
+        """Return True if a local source path looks installable by uv/pip."""
+        path = Path(source)
+        try:
+            if not path.exists():
+                return False
+            if path.is_file():
+                return path.name in {"pyproject.toml", "setup.py", "setup.cfg"}
+            if path.is_dir():
+                return any(
+                    (path / name).is_file()
+                    for name in ("pyproject.toml", "setup.py", "setup.cfg")
+                )
+        except OSError:
+            return False
+        return False
+
+
+class UvToolRunner:
+    """Run uv tool commands with splash-inspired progress reporting."""
+
+    def run(self, command: list[str], renderer: ProgressRenderer, run_phase: str) -> tuple[int, str]:
+        stream = renderer.stream
+        tty = bool(getattr(stream, "isatty", lambda: False)())
+        if not tty:
+            return self._run_plain(command, renderer, run_phase)
+        return self._run_tty(command, renderer, run_phase)
+
+    def _run_plain(
+        self, command: list[str], renderer: ProgressRenderer, run_phase: str
+    ) -> tuple[int, str]:
+        renderer.emit(renderer.render_phase("prepare", tty=False))
+        renderer.emit(renderer.render_phase(run_phase, tty=False))
+        proc = subprocess.run(command, check=False, capture_output=True, text=True)
+        renderer.emit(renderer.render_phase("verify", tty=False))
+        detail = (proc.stderr or proc.stdout or "").strip()
+        return proc.returncode, detail
+
+    def _run_tty(
+        self, command: list[str], renderer: ProgressRenderer, run_phase: str
+    ) -> tuple[int, str]:
+        stream = renderer.stream
+        renderer.emit(renderer.render_phase("prepare", fraction=1.0, tty=True))
+        proc = subprocess.Popen(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+
+        start = time.monotonic()
+        duration = 2.5  # nominal animation window within the run phase
+        while proc.poll() is None:
+            elapsed = time.monotonic() - start
+            fraction = min(0.95, elapsed / duration)
+            line = renderer.render_phase(run_phase, fraction=fraction, tty=True)
+            print(f"\r{line}", end="", file=stream, flush=True)
+            time.sleep(0.08)
+        stdout, stderr = proc.communicate()
+        end_line = renderer.render_phase(run_phase, fraction=1.0, tty=True)
+        print(f"\r{end_line}", end="", file=stream, flush=True)
+        print(file=stream)
+        renderer.emit(renderer.render_phase("verify", fraction=1.0, tty=True))
+        detail = (stderr or stdout or "").strip()
+        return proc.returncode, detail
+
+
+class WindfallToolCommands:
+    """Install/remove Windfall as a uv tool with consistent CLI UX."""
+
+    def __init__(self, runner: UvToolRunner | None = None) -> None:
+        self.runner = runner if runner is not None else UvToolRunner()
+
+    def install(self, args) -> int:
+        source = getattr(args, "source", ".")
+        if not InstallSourceValidator.is_valid(source):
+            print(
+                f"windfall: install source '{source}' is not an installable Python project "
+                "(expected a directory or file with pyproject.toml, setup.py, or setup.cfg). "
+                "Run from a Windfall source checkout or pass an explicit source path.",
+                file=sys.stderr,
+            )
+            return 2
+        command = ["uv", "tool", "install", source]
+        if getattr(args, "force", False):
+            command.append("--force")
+        renderer = ProgressRenderer(InstallProgressPlan, stream=sys.stdout)
+        try:
+            code, detail = self.runner.run(command, renderer, "install")
+        except FileNotFoundError:
+            print(
+                "windfall: uv not found; cannot install Windfall (uv tool required).",
+                file=sys.stderr,
+            )
+            return 2
+        if code == 0:
+            renderer.emit(renderer.render_success(InstallProgressPlan.success(source)))
+            return 0
+        renderer.emit(renderer.render_failure(InstallProgressPlan.failure()))
+        if detail:
+            print(detail, file=sys.stderr)
+        return code
+
+    def uninstall(self, _args) -> int:
+        command = ["uv", "tool", "uninstall", "windfall"]
+        renderer = ProgressRenderer(RemoveProgressPlan, stream=sys.stdout)
+        try:
+            code, detail = self.runner.run(command, renderer, "uninstall")
+        except FileNotFoundError:
+            print(
+                "windfall: uv not found; cannot remove the Windfall tool (uv tool required).",
+                file=sys.stderr,
+            )
+            return 2
+        if code == 0:
+            renderer.emit(renderer.render_success(RemoveProgressPlan.success()))
+            return 0
+        renderer.emit(renderer.render_failure(RemoveProgressPlan.failure()))
+        if detail:
+            print(detail, file=sys.stderr)
+        return code
+
+
+_TOOL_COMMANDS = WindfallToolCommands()
+
+
+def _install_source_is_valid(source: str) -> bool:
+    """Compatibility wrapper for install source validation."""
+    return InstallSourceValidator.is_valid(source)
+
+
+def _run_tool_command(
+    command: list[str], renderer: ProgressRenderer, run_phase: str
+) -> tuple[int, str]:
+    """Compatibility wrapper for uv tool command execution with progress."""
+    return _TOOL_COMMANDS.runner.run(command, renderer, run_phase)
+
+
+def _cmd_install(args) -> int:
+    return _TOOL_COMMANDS.install(args)
+
+
+def _cmd_uninstall(_args) -> int:
+    return _TOOL_COMMANDS.uninstall(_args)
+
+
 def _cmd_help(args) -> int:
     build_parser().print_help()
     return 0
@@ -263,6 +421,9 @@ _HANDLERS = {
     "list": _cmd_list,
     "example": _cmd_example,
     "examples": _cmd_examples,
+    "install": _cmd_install,
+    "uninstall": _cmd_uninstall,
+    "remove": _cmd_uninstall,
     "help": _cmd_help,
 }
 

@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-11-12
+
+### Added
+- `windfall install [source] [--force]` to install Windfall cleanly as a `uv` tool from an installable source path (default: `.` from a Windfall source checkout). Shows splash-inspired progress in a terminal (gold bar and phase messages) and plain step output in non-TTY/CI contexts.
+- `windfall uninstall` and `windfall remove` to remove the installed Windfall `uv` tool cleanly, with the same progress behavior and truthful success/failure output.
+- Clear, consistent CLI outcomes for installer/remover flows: exit 0 on success, exit 2 for missing `uv` or an invalid/non-installable install source, and the `uv` subprocess exit code on command failure (with captured detail reported on stderr).
+- README install/remove guidance and command documentation, including clean-remove instructions.
+
+### Added
+
+- `windfall install [source] [--force]` to install Windfall cleanly as a `uv` tool from an installable source path (default: `.` from a Windfall source checkout). Shows splash-inspired progress in a terminal (gold bar and phase messages) and plain step output in non-TTY/CI contexts.
+- `windfall uninstall` and `windfall remove` to remove the installed Windfall `uv` tool cleanly, with the same progress behavior and truthful success/failure output.
+- Clear, consistent CLI outcomes for installer/remover flows: exit 0 on success, exit 2 for missing `uv` or an invalid/non-installable install source, and the `uv` subprocess exit code on command failure (with captured detail reported on stderr).
+- README install/remove guidance and command documentation, including clean-remove instructions.
+
 ## [0.2.10] - 2026-09-27
 
 ### Added
