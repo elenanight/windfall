@@ -5,4 +5,5 @@
 - **Boot splash** *(released in 0.2.7)* — ASCII logo fade-in with a progress bar that lands in the project menu; any key skips straight there.
 - **Snake** *(released in 0.2.7)* — a clean grid game: steer with the arrows, grow on food, and restart with Enter.
 - **Widget guides** *(released in 0.2.9)* — per-widget usage docs in the [`Home.md` wiki page](https://github.com/elenanight/windfall/wiki).
+- **Installer and remover** *(planned for 0.3.0)* — install and remove Windfall cleanly as a uv tool from source, with splash-inspired progress and clear CLI feedback.
 - **Vember OS** *(long term)* — a node-based OS rendering through Windfall as an imported package.
