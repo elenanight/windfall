@@ -36,6 +36,11 @@ jobs:
       - run: |
           REPO="${{ github.repository }}"
           OWNER="${REPO%%/*}"
+          AHEAD=$(gh api "repos/$REPO/compare/main...dev" --jq .ahead_by 2>/dev/null || echo "")
+          if [ "$AHEAD" = "0" ]; then
+            echo "dev has no commits to promote - nothing to do."
+            exit 0
+          fi
           find_pr() {
             gh api "repos/$REPO/pulls?head=$OWNER:dev&base=main&state=open" 2>/dev/null | grep -o '"number":[0-9]*' | head -n 1 | grep -o '[0-9]*' || true
           }
@@ -49,6 +54,9 @@ jobs:
                 PR=$(find_pr)
                 [ -n "$PR" ] && break
               done
+            elif grep -q "No commits between" /tmp/pr-err.txt; then
+              echo "dev has no commits to promote - nothing to do."
+              exit 0
             else
               cat /tmp/pr-err.txt >&2
               exit 1
