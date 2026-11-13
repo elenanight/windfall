@@ -1,7 +1,7 @@
 # Windfall
 
 <!-- badges:start -->
-[![version](https://img.shields.io/badge/version-0.2.10-blue)](https://github.com/elenanight/windfall/releases)
+[![version](https://img.shields.io/badge/version-0.3.0-blue)](https://github.com/elenanight/windfall/releases)
 [![stable](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=main&label=stable)](https://github.com/elenanight/windfall/actions/workflows/ci.yml?query=branch%3Amain)
 [![dev](https://img.shields.io/github/actions/workflow/status/elenanight/windfall/ci.yml?branch=dev&label=dev)](https://github.com/elenanight/windfall/actions/workflows/ci.yml?query=branch%3Adev)
 [![changelog](https://img.shields.io/badge/latest-changelog-orange)](https://github.com/elenanight/windfall/blob/main/CHANGELOG.md)
@@ -25,6 +25,7 @@ headless and interactive alike.
 - **Boot splash** *(released in 0.2.7)* — ASCII logo fade-in with a progress bar that lands in the project menu; any key skips straight there.
 - **Snake** *(released in 0.2.7)* — a clean grid game: steer with the arrows, grow on food, and restart with Enter.
 - **Widget guides** *(released in 0.2.9)* — per-widget usage docs in the [`Home.md` wiki page](https://github.com/elenanight/windfall/wiki).
+- **Installer and remover** *(planned for 0.3.0)* — install and remove Windfall cleanly as a uv tool from source, with splash-inspired progress and clear CLI feedback.
 - **Vember OS** *(long term)* — a node-based OS rendering through Windfall as an imported package.
 <!-- roadmap:end -->
 
@@ -37,6 +38,29 @@ uv run windfall menu                     # browse and manage projects
 uv run windfall new myapp                # scaffold project/myapp
 cd project/myapp && uv run python app.py # run it
 ```
+
+## Install
+
+Install Windfall as a `uv` tool from a **Windfall source checkout** (or pass an explicit installable source path):
+
+```bash
+# from a Windfall source checkout
+windfall install .                       # install as a uv tool from the current directory
+windfall install . --force               # reinstall if already installed
+```
+
+- `install` defaults to source `.` and expects an installable project directory (`pyproject.toml`, `setup.py`, or `setup.cfg`).
+- In a terminal, install/remove shows splash-inspired progress (gold bar and step messages); in non-TTY/CI output it falls back to plain step lines.
+- Requires `uv`.
+
+Remove Windfall cleanly when installed as a `uv` tool:
+
+```bash
+windfall uninstall                       # remove the installed Windfall uv tool
+windfall remove                          # alias for uninstall
+```
+
+If `uv` is unavailable or Windfall is not installed, the command reports a clear error and exits with a non-zero status (no false success).
 
 ## Widget List
 
@@ -87,7 +111,15 @@ connectors:
 | `windfall list app.py` | list Scene/Component subclasses (AST) |
 | `windfall help \| --help \| --version` | show help / version |
 
-Shortcut flags mirror every subcommand (`--create`, `--run`, `--demo`,
+### Installing
+
+| Command | Description |
+| --- | --- |
+| `windfall install [source] [--force]` | install Windfall as a uv tool from a source path (default: `.`; use from a Windfall source checkout or pass an explicit path) |
+| `windfall uninstall` | remove the installed Windfall uv tool cleanly |
+| `windfall remove` | alias for `uninstall` |
+
+Shortcut flags mirror subcommands where available (`--create`, `--run`, `--demo`,
 `--menu`, `--example`, `--check`, `--list`); `windfall --examples` lists
 the bundled examples. All runs share one `Engine.step` code path, so a
 `--headless` pass behaves exactly like a live terminal session.
