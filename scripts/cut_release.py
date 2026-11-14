@@ -72,44 +72,100 @@ def readme_version(path: Path | None = None) -> str:
     return match.group(1)
 
 
-def prior(version: str, back: int) -> str:
-    """The release ``back`` steps before ``version`` (0.2.7 back 1 -> 0.2.6,
-    back 2 -> 0.2.5)."""
-    major, minor, patch = (int(part) for part in version.split("."))
-    patch -= back
-    while patch < 0 and minor > 0:
-        minor -= 1
-        patch += 10
-    patch = max(0, patch)
-    return f"{major}.{minor}.{patch}"
+def version_key(version: str) -> tuple[int, int, int]:
+    """Sort key for a dotted release version (``0.2.10`` -> ``(0, 2, 10)``)."""
+    return tuple(int(part) for part in version.split("."))
 
 
-def support_rows(version: str) -> list[tuple[str, str | None]]:
-    """Rows for the sliding window, newest first; ``None`` marks the EOL bucket."""
-    rows: list[tuple[str, str | None]] = []
-    for back in range(WINDOW_SLOTS):
-        rows.append((prior(version, back), "✅"))
-    rows.append((f"<= {prior(version, WINDOW_SLOTS)}", "❌"))
+def release_history() -> list[str]:
+    """Every released version, oldest first, read from the local ``v*`` tags.
+
+    The support window derives from what actually shipped, never from
+    arithmetic on the version being cut: a minor line may carry any
+    number of patches, so counting rungs invents releases that never
+    existed and drops ones that did (VWS-150).
+    """
+    try:
+        result = subprocess.run(
+            ["git", "tag", "-l", "v*"],
+            capture_output=True,
+            text=True,
+            check=True,
+            cwd=ROOT,
+        )
+    except subprocess.CalledProcessError, FileNotFoundError:
+        return []
+    versions = [
+        tag[1:] for tag in result.stdout.splitlines() if re.fullmatch(r"v\d+\.\d+\.\d+", tag)
+    ]
+    return sorted(versions, key=version_key)
+
+
+def _pool(version: str, history: list[str] | None) -> list[str]:
+    """Releases up to and including ``version``, newest first.
+
+    ``version`` itself is always in the pool: at cut time its tag does
+    not exist yet, but the window is computed for the world where it has
+    just shipped.
+    """
+    if history is None:
+        history = release_history()
+    pool = {v for v in history if version_key(v) <= version_key(version)}
+    pool.add(version)
+    return sorted(pool, key=version_key, reverse=True)
+
+
+def window_versions(version: str, history: list[str] | None = None) -> list[str]:
+    """The supported releases for a cut of ``version``, newest first.
+
+    The window is ``version`` plus the releases immediately before it in
+    real history, up to ``WINDOW_SLOTS`` total.
+    """
+    return _pool(version, history)[:WINDOW_SLOTS]
+
+
+def eol_version(version: str, history: list[str] | None = None) -> str | None:
+    """The newest release that falls off the window's tail, or ``None``.
+
+    ``None`` when the window covers every release up to ``version`` —
+    nothing is end-of-life yet.
+    """
+    pool = _pool(version, history)
+    if len(pool) > WINDOW_SLOTS:
+        return pool[WINDOW_SLOTS]
+    return None
+
+
+def support_rows(version: str, history: list[str] | None = None) -> list[tuple[str, str | None]]:
+    """Rows for the sliding window, newest first; the EOL bucket is last."""
+    rows: list[tuple[str, str | None]] = [(v, "✅") for v in window_versions(version, history)]
+    eol = eol_version(version, history)
+    if eol is not None:
+        rows.append((f"<= {eol}", "❌"))
     return rows
 
 
-def build_support_block(version: str) -> str:
+def build_support_block(version: str, history: list[str] | None = None) -> str:
     """The SECURITY table between the markers (no trailing newline on marker)."""
     header = "| Version  | Supported          |\n| -------- | ------------------ |"
-    lines = [f"| {label:<8} | {status} |" for label, status in support_rows(version)]
+    lines = [f"| {label:<8} | {status} |" for label, status in support_rows(version, history)]
     return "\n".join([header, *lines])
 
 
-def slide_support_block(text: str, version: str) -> str:
+def slide_support_block(text: str, version: str, history: list[str] | None = None) -> str:
     """Rewrite the block between the markers; error if markers absent."""
     pattern = re.compile(re.escape(SUPPORT_START) + r".*?" + re.escape(SUPPORT_END), re.DOTALL)
     if pattern.search(text) is None:
         raise ValueError(f"SECURITY is missing {SUPPORT_START}...{SUPPORT_END}")
-    return pattern.sub(f"{SUPPORT_START}\n{build_support_block(version)}\n{SUPPORT_END}", text)
+    return pattern.sub(
+        f"{SUPPORT_START}\n{build_support_block(version, history)}\n{SUPPORT_END}", text
+    )
 
 
-def slid_eol(version: str) -> str:
-    return f"<= {prior(version, WINDOW_SLOTS)}"
+def slid_eol(version: str, history: list[str] | None = None) -> str | None:
+    """The ``<= X`` end-of-life label for a cut of ``version``, or ``None``."""
+    eol = eol_version(version, history)
+    return f"<= {eol}" if eol is not None else None
 
 
 def changelog_section(version: str, path: Path | None = None) -> str:
@@ -139,31 +195,26 @@ def _release_date() -> str:
 def _promoted_changelog(version: str, path: Path | None = None) -> str | None:
     """CHANGELOG text with ``## [Unreleased]`` promoted to ``## [version]``.
 
+    Promotion is a move, not a copy: the Unreleased header is renamed in
+    place and its body carries over exactly as written — subsections,
+    bullets and all — so nothing is duplicated or flattened (VWS-150).
+
     Pure: reads and returns, never writes. Returns ``None`` when there is
     nothing to promote (no Unreleased section, or an empty body).
     """
     changelog_path = path or CHANGELOG
     text = changelog_path.read_text(encoding="utf-8")
 
-    # Pull the body from ## [Unreleased]
-    unreleased_pattern = re.compile(
-        r"^## \[Unreleased\]\s*(?:-\s*[0-9-]+)?\n(.*?)(?=^## \[|\Z)",
+    pattern = re.compile(
+        r"^(## \[Unreleased\]\s*(?:-\s*[0-9-]+)?)\n(.*?)(?=^## \[|\Z)",
         re.MULTILINE | re.DOTALL,
     )
-    unreleased_match = unreleased_pattern.search(text)
-    if not unreleased_match:
+    match = pattern.search(text)
+    if match is None or not match.group(2).strip():
         return None  # nothing to promote
 
-    unreleased_body = unreleased_match.group(1).strip()
-
-    # Build a minimal ``## [version]`` section from the unreleased bullets
-    bullets = unreleased_body.split("\n") if unreleased_body else []
-    section_lines = [f"## [{version}] - {_release_date()}", "", "### Added"]
-    section_lines += [b.strip() for b in bullets if b.strip()]
-    section_content = "\n".join(section_lines)
-
-    # Replace the ``## [Unreleased]`` marker with the new section
-    return re.sub(r"^## \[Unreleased\]", section_content, text, count=1, flags=re.MULTILINE)
+    header = f"## [{version}] - {_release_date()}"
+    return text[: match.start(1)] + header + text[match.end(1) :]
 
 
 def _ensure_changelog_section(version: str) -> None:
@@ -270,7 +321,10 @@ def changelog_release_body(version: str) -> str:
     section = changelog_section(version)
     if not section:
         raise ValueError(f"CHANGELOG has no non-empty ## [{version}] section")
-    return section + f"\n\n{slid_eol(version)} is end-of-life — see SECURITY.md."
+    eol = slid_eol(version)
+    if eol is None:
+        return section
+    return section + f"\n\n{eol} is end-of-life — see SECURITY.md."
 
 
 def apply_cut(version: str, dry_run: bool = False) -> None:
@@ -286,7 +340,9 @@ def apply_cut(version: str, dry_run: bool = False) -> None:
     if dry_run:
         print(f"would tag v{version}")
         print(f"would publish windfall {version} on GitHub")
-        print(f"would EOL: {slid_eol(version)}")
+        eol = slid_eol(version)
+        if eol is not None:
+            print(f"would EOL: {eol}")
         return
 
     # verify() is read-only by contract, so promote the section here, where
